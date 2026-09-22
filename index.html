@@ -1,0 +1,1129 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#101b2c">
+  <meta name="description" content="Simulador ajustable del seguidor de línea sobre la pista impresa de 180 × 120 cm.">
+  <title>Seguidor de línea · simulador físico</title>
+  <style>
+:root{color-scheme:light;--ink:#15243a;--muted:#5b6b7d;--line:#dce4ea;--canvas:#f7f9fa;--paper:#fff;--navy:#101b2c;--teal:#006e69;--teal-bright:#168a7e;--amber:#e89a36;--red:#b74238;--shadow:0 18px 60px rgba(19,35,53,.07)}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:#eef3f5;color:var(--ink);font:400 16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+button,input{font:inherit}
+button{cursor:pointer}
+button:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid var(--amber);outline-offset:3px}
+.app-shell{max-width:1220px;margin:0 auto;padding:0 22px 44px}
+.topbar{min-height:184px;margin:0 -22px 24px;padding:31px max(22px,calc((100vw - 1176px)/2)) 27px;background:var(--navy);color:#fff;display:flex;align-items:center;justify-content:space-between;gap:22px}
+.eyebrow,.section-kicker{margin:0 0 7px;font-size:.72rem;font-weight:800;letter-spacing:.13em;text-transform:uppercase}
+.eyebrow{color:#7ed4c3}.section-kicker{color:var(--teal)}
+h1,h2,h3,p{margin-top:0}
+h1{font-size:clamp(1.9rem,5vw,3.1rem);line-height:1.06;letter-spacing:-.04em;margin-bottom:10px}
+h2{font-size:clamp(1.25rem,2.6vw,1.7rem);line-height:1.12;letter-spacing:-.025em;margin-bottom:0}
+h3{font-size:1.02rem;margin-bottom:0}
+.subtitle{max-width:630px;margin-bottom:0;color:#cbd7e0}
+.topbar-mark{flex:0 0 auto;width:100px;height:100px;border:1px solid #577183;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:2.1rem;font-weight:800;color:#86dfca;line-height:1}
+.topbar-mark span{font-size:.62rem;letter-spacing:.03em;font-weight:700;margin-top:5px;text-transform:uppercase}
+.simulation-panel,.controls-panel,.assumptions{background:var(--paper);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow)}
+.simulation-panel{padding:24px}.panel-heading{display:flex;align-items:end;justify-content:space-between;gap:18px;margin-bottom:18px}.panel-heading .section-kicker{margin-bottom:5px}
+.status-badge{flex:0 0 auto;border-radius:999px;background:#e9f2ee;color:#226955;font-size:.78rem;font-weight:800;padding:8px 12px;white-space:nowrap}
+.status-badge[data-tone="warning"]{background:#fff0d9;color:#8d4d08}.status-badge[data-tone="danger"]{background:#ffe5e1;color:#a2332d}
+.track-frame{position:relative;width:100%;aspect-ratio:3/2;background:var(--canvas);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+#trackCanvas{display:block;width:100%;height:100%;touch-action:none}
+.canvas-overlay{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:rgba(16,27,44,.87);color:#fff;border-radius:10px;padding:10px 15px;text-align:center;font-size:.86rem;font-weight:700;pointer-events:none;max-width:80%}
+.canvas-overlay[hidden]{display:none}
+.controller-choice{display:flex;align-items:center;gap:12px;margin-top:15px}.controller-choice label{font-size:.84rem;font-weight:800;white-space:nowrap}.controller-choice select{min-width:0;max-width:100%;padding:9px 10px;border:1px solid #cbd7dd;border-radius:9px;background:#fff;color:var(--ink);font:inherit}.controller-choice select:focus-visible{outline:3px solid var(--amber);outline-offset:3px}.mode-explanation{margin:7px 0 0;color:var(--muted);font-size:.8rem}
+.playback-row{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:16px 0}.button-group{display:flex;gap:9px;flex-wrap:wrap}
+.button{border-radius:10px;padding:11px 15px;min-height:44px;border:1px solid var(--line);font-weight:750;background:var(--paper);color:var(--ink)}
+.button-primary{background:var(--teal);border-color:var(--teal);color:#fff}.button-primary:hover{background:#005b57}.button-secondary:hover{background:#f3f7f8}.button-text{border:0;background:transparent;color:var(--teal);padding-inline:5px}
+.simulation-note{font-size:.76rem;color:var(--muted);margin:0;text-align:right}
+.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}.metric{background:#f4f7f8;border:1px solid #e8eff0;border-radius:10px;padding:11px 12px;min-width:0}.metric span{display:block;color:var(--muted);font-size:.73rem;font-weight:700;line-height:1.2;min-height:2.2em}.metric strong{display:block;margin-top:3px;font-size:clamp(.91rem,2vw,1.1rem);font-variant-numeric:tabular-nums;white-space:nowrap}
+.readout{min-height:2.8em;border-left:3px solid var(--teal);padding:8px 0 5px 13px;margin:15px 0 0;color:var(--muted);font-size:.86rem}
+.profile-strip{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:12px;padding:8px 13px;border:1px solid #e8eff0;border-radius:10px;background:#fbfcfc}.profile-strip strong,.profile-strip span{display:block}.profile-strip strong{font-size:.76rem;color:var(--ink)}.profile-strip>div:first-child>span{font-size:.72rem;color:var(--muted)}.profile-stage{position:relative;flex:0 0 205px;height:64px;overflow:hidden}.profile-ground{position:absolute;left:5px;right:5px;bottom:10px;height:2px;background:#a7b6bd}.profile-wheel{position:absolute;left:23px;bottom:9px;width:28px;height:28px;border:6px solid #46535b;background:#d9e1e3;border-radius:50%;z-index:2}.profile-assembly{position:absolute;left:38px;bottom:31px;width:145px;height:9px;transform-origin:0 50%;transform:rotate(0deg)}.profile-body{position:absolute;left:0;top:-5px;width:62px;height:19px;background:#164f39;border-radius:3px}.profile-rod{position:absolute;left:58px;top:0;width:75px;height:5px;background:#a5b4bf}.profile-sensor{position:absolute;right:0;top:-8px;width:13px;height:24px;background:#167456;border-radius:5px}
+.controls-panel{margin-top:18px;padding:24px}.controls-heading{margin-bottom:12px}.control-intro{margin:0 0 18px;color:var(--muted);font-size:.9rem}.control-intro strong{color:var(--ink)}
+.presets{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}.preset{border:1px solid #c9d9d8;background:#f4faf8;color:#12615b;border-radius:999px;padding:8px 13px;min-height:39px;font-size:.82rem;font-weight:750}.preset:hover,.preset[aria-pressed="true"]{background:#d8eeea;border-color:#6eb4a9}
+.preset-warning{margin:-5px 0 15px;padding:9px 12px;border-left:3px solid var(--amber);background:#fff8eb;color:#784a0a;font-size:.83rem}.preset-warning[hidden]{display:none}.parameter[data-disabled="true"]{opacity:.56}.parameter input:disabled{cursor:not-allowed}
+.parameter-group{border-top:1px solid var(--line);padding-top:2px}.parameter-group summary{list-style:none;display:flex;justify-content:space-between;align-items:center;min-height:54px;font-weight:800;cursor:pointer}.parameter-group summary::-webkit-details-marker{display:none}.parameter-group summary::after{content:"+";color:var(--teal);font-size:1.3rem}.parameter-group[open] summary::after{content:"−"}.parameter-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;padding:4px 0 22px}
+.parameter{border:1px solid #e4ebee;border-radius:11px;padding:13px;background:#fbfcfd;min-width:0}.parameter-heading{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:10px}.parameter-heading label{font-size:.85rem;font-weight:750}.parameter-heading output{font-variant-numeric:tabular-nums;font-weight:800;color:var(--teal);white-space:nowrap}
+.parameter input[type="range"]{display:block;width:100%;margin:3px 0 12px;accent-color:var(--teal);min-height:28px;touch-action:auto}.parameter-bottom{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}.parameter-bottom label{font-size:.69rem;color:var(--muted);font-weight:700;display:block}.parameter-bottom input{width:100%;min-width:0;padding:6px 7px;margin-top:3px;border:1px solid #cbd7dd;border-radius:7px;background:#fff;color:var(--ink);font-size:1rem;font-variant-numeric:tabular-nums}.parameter-help{font-size:.73rem;color:var(--muted);margin:9px 0 0;min-height:2em}
+.assumptions{margin-top:18px;padding:24px}.assumptions h2{margin-bottom:12px}.assumptions p:not(.section-kicker){font-size:.9rem;color:var(--muted);max-width:1000px;margin-bottom:11px}.assumptions p:last-child{margin-bottom:0}
+#trackGeometry{position:absolute;left:-10000px;pointer-events:none}
+@media(max-width:740px){.app-shell{padding:0 12px 24px}.topbar{margin:0 -12px 12px;padding:24px 19px;min-height:0}.topbar-mark{width:70px;height:70px;font-size:1.5rem}.topbar-mark span{font-size:.53rem}.simulation-panel,.controls-panel,.assumptions{padding:15px;border-radius:13px}.panel-heading{align-items:start}.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.metric span{min-height:0}.parameter-grid{grid-template-columns:1fr}.simulation-note{display:none}.button-group{width:100%}.button-group .button{flex:1 1 auto}.track-frame{border-radius:8px}}
+@media(max-width:390px){.topbar-mark{display:none}.status-badge{font-size:.68rem;padding:7px 9px}.panel-heading{gap:9px}.metric strong{font-size:.9rem}.button{padding-inline:10px}.parameter-bottom{gap:5px}}
+@media(max-width:520px){.profile-strip{align-items:start}.profile-strip>div:first-child{max-width:125px}.profile-stage{flex-basis:175px}.profile-assembly{width:130px}.profile-rod{width:60px}}
+@media(max-width:520px){.controller-choice{display:block}.controller-choice label{display:block;margin-bottom:6px}.controller-choice select{width:100%}}
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+
+</style>
+</head>
+<body>
+  <main class="app-shell">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">CONTROL BÁSICO · PROTOTIPO DIGITAL</p>
+        <h1>Seguidor de línea</h1>
+        <p class="subtitle">Prueba velocidad, agarre y geometría en la misma pista de 180 × 120 cm que imprimiste.</p>
+      </div>
+      <div class="topbar-mark" aria-hidden="true">16<span>sensores</span></div>
+    </header>
+
+    <section class="simulation-panel" aria-label="Simulación de la pista">
+      <div class="panel-heading">
+        <div>
+          <p class="section-kicker">PISTA IMPRESA · 50 HOJAS A4</p>
+          <h2>Vista en tiempo real</h2>
+        </div>
+        <span class="status-badge" id="statusBadge" aria-live="polite">Lista para iniciar</span>
+      </div>
+
+      <div class="track-frame">
+        <canvas id="trackCanvas" role="img" aria-label="Pista de 180 por 120 centímetros con el robot seguidor de línea"></canvas>
+        <div class="canvas-overlay" id="canvasOverlay">Pulsa Iniciar para probar el robot</div>
+      </div>
+
+      <div class="controller-choice">
+        <label for="controllerMode">Control que se simula</label>
+        <select id="controllerMode">
+          <option value="advanced3000">Candidato 3000 RPM</option>
+          <option value="reference1000">Referencia 1000 RPM</option>
+        </select>
+      </div>
+      <p class="mode-explanation" id="modeExplanation">Control de 3000 RPM con lectura de 16 sensores, corrección diferencial y aceleración progresiva.</p>
+
+      <div class="playback-row">
+        <div class="button-group">
+          <button class="button button-primary" id="playButton" type="button">Iniciar</button>
+          <button class="button button-secondary" id="resetButton" type="button">Reiniciar</button>
+          <button class="button button-secondary" id="viewButton" type="button" aria-pressed="false">Seguir robot</button>
+        </div>
+        <p class="simulation-note">Tiempo simulado · la vista no cambia la física</p>
+      </div>
+
+      <div class="metrics" aria-live="polite">
+        <div class="metric"><span>Tiempo</span><strong id="timeValue">0,0 s</strong></div>
+        <div class="metric"><span>Avance real simulado</span><strong id="speedValue">0,00 m/s</strong></div>
+        <div class="metric"><span>Deslizamiento</span><strong id="slipValue">0 %</strong></div>
+        <div class="metric"><span>Nariz / sensor</span><strong id="pitchValue">0,0° · 3,0 mm</strong></div>
+      </div>
+      <div class="profile-strip" aria-label="Perfil lateral simplificado de la elevación frontal">
+        <div><strong>Perfil lateral</strong><span>La nariz puede levantar la regleta al acelerar.</span></div>
+        <div class="profile-stage" aria-hidden="true">
+          <span class="profile-ground"></span>
+          <span class="profile-wheel"></span>
+          <span class="profile-assembly" id="profileAssembly">
+            <span class="profile-body"></span><span class="profile-rod"></span><span class="profile-sensor"></span>
+          </span>
+        </div>
+      </div>
+      <p class="readout" id="readout" aria-live="polite">Regleta centrada. El código usa 16 lecturas, centroide, PD y velocidades independientes en ambas ruedas.</p>
+    </section>
+
+    <section class="controls-panel" aria-labelledby="controlsTitle">
+      <div class="panel-heading controls-heading">
+        <div>
+          <p class="section-kicker">BANCO DE PRUEBAS</p>
+          <h2 id="controlsTitle">Parámetros ajustables</h2>
+        </div>
+        <button class="button button-text" id="defaultsButton" type="button">Restablecer valores</button>
+      </div>
+      <p class="control-intro">Mueve cada control como un potenciómetro. El campo <strong>Máximo</strong> cambia el límite del deslizador; también puedes escribir el valor exacto.</p>
+      <div class="presets" aria-label="Escenarios rápidos">
+        <button class="preset" data-preset="base" type="button">Base</button>
+        <button class="preset" data-preset="firmware3000" type="button">Firmware 3000 sin ajuste</button>
+        <button class="preset" data-preset="slippery" type="button">Poco agarre</button>
+        <button class="preset" data-preset="lift" type="button">Nariz arriba</button>
+        <button class="preset" data-preset="bias" type="button">Tira a un lado</button>
+      </div>
+      <p class="preset-warning" id="presetWarning" role="status" hidden>Este escenario conserva las órdenes del firmware de 3000 RPM sin ajuste: 1950 RPM en recta, 550 en curva, Kp 420 y Kd 1,2. En el modelo web puede perder la línea; no equivale a validar el código físico.</p>
+      <div id="parameterGroups"></div>
+    </section>
+
+    <section class="assumptions" aria-labelledby="assumptionsTitle">
+      <p class="section-kicker">QUÉ REPRESENTA</p>
+      <h2 id="assumptionsTitle">Una prueba aproximada, no una predicción garantizada</h2>
+      <p>La línea y sus medidas son las del archivo vectorial usado para imprimir la pista: 180 × 120 cm y trazo de 18 mm. El robot parte de radio de rueda 10 mm, separación de 120 mm y regleta curva de 16 sensores adelantada entre 160 y 175 mm.</p>
+      <p>El derrape, la respuesta del motor y la elevación de la nariz se calculan con un modelo reducido en 2D. Aún no se han medido el coeficiente de fricción, la inercia, el centro de masa ni las RPM bajo carga del robot físico. Los valores superiores a la velocidad estimada con 5 V y carga son escenarios hipotéticos, no velocidad confirmada.</p>
+      <p>El modo «Referencia exitosa» reproduce la lógica del firmware físico protegido de 1000 RPM: umbrales de 16 sensores, centroide, PID, velocidad PWM variable, pivote y búsqueda. No ejecuta código Arduino dentro del navegador ni simula su calibración de diez segundos; las lecturas se consideran ya calibradas. El archivo original no se modifica.</p>
+    </section>
+  </main>
+
+  <svg id="trackGeometry" width="0" height="0" viewBox="0 0 1800 1200" aria-hidden="true" focusable="false">
+    <path id="trackPath" d="M 500 150 L 550 150 C 750 150 700 450 900 450 C 1100 450 1050 150 1250 150 L 1300 150 C 1548.528137423857 150 1750 351.4718625761429 1750 600 C 1750 848.5281374238571 1548.528137423857 1050 1300 1050 L 1250 1050 C 1050 1050 1100 750 900 750 C 700 750 750 1050 550 1050 L 500 1050 C 251.47186257614288 1050 50 848.5281374238571 50 600 C 50 351.4718625761429 251.47186257614288 150 500 150 Z" />
+  </svg>
+
+  <script>
+/*
+ * Simulador interactivo del seguidor de línea.
+ * La pista dibujada y sensada sale del mismo path vectorial del PDF impreso.
+ * La dinámica de tracción/cabeceo es un modelo reducido y ajustable, no una
+ * reproducción calibrada del robot físico ni de CoppeliaSim.
+ */
+(() => {
+  'use strict';
+
+  const $ = (id) => document.getElementById(id);
+  const canvas = $('trackCanvas');
+  const ctx = canvas.getContext('2d', { alpha: false });
+  const trackElement = $('trackPath');
+  const trackPath = new Path2D(trackElement.getAttribute('d'));
+  const trackLengthMm = trackElement.getTotalLength();
+  const TRACK_W = 1800;
+  const TRACK_H = 1200;
+  const STEP = 0.002;
+  const GRAVITY = 9.81;
+  const STORAGE_KEY = 'seguidor-linea-web-v2';
+  const numberFormat = new Intl.NumberFormat('es-CO', { maximumFractionDigits: 2 });
+
+  const groups = [
+    {
+      name: 'Velocidad y controlador', open: true,
+      items: [
+        { key: 'motorRpm', label: 'Motor nominal', unit: 'RPM', value: 3000, min: 100, max: 5000, step: 50, hardMax: 20000, help: 'RPM sin carga a 6 V; no son RPM medidas en la pista.' },
+        { key: 'supplyV', label: 'Voltaje en motores', unit: 'V', value: 5, min: 0.5, max: 8, step: 0.1, hardMax: 24, help: 'Valor de VM del TB6612FNG, no tensión de la batería.' },
+        { key: 'loadFactor', label: 'Factor bajo carga', unit: '×', value: 0.78, min: 0.1, max: 1, step: 0.01, hardMax: 2, help: 'Hipótesis de pérdidas por carga, batería y puente H.' },
+        { key: 'straightRpm', label: 'Orden en recta', unit: 'RPM', value: 1300, min: 0, max: 3000, step: 25, hardMax: 20000, help: 'RPM ordenadas a las ruedas en recta; se limitan al motor cargado.' },
+        { key: 'curveRpm', label: 'Orden en curva', unit: 'RPM', value: 250, min: 0, max: 1500, step: 25, hardMax: 20000, help: 'Velocidad base antes del desacople entre ruedas.' },
+        { key: 'maxYawRate', label: 'Velocidad máxima de giro', unit: 'rad/s', value: 18, min: 0.5, max: 25, step: 0.5, hardMax: 100, help: 'Tope de la orden angular; más giro exige mayor diferencia entre motores.' },
+        { key: 'yawSlewRate', label: 'Cambio máximo de giro', unit: 'rad/s²', value: 100, min: 1, max: 150, step: 5, hardMax: 2000, help: 'Rapidez con que cambia la orden de giro; un valor alto puede causar oscilaciones.' },
+        { key: 'kp', label: 'Ganancia proporcional', unit: 'rad/s/m', value: 150, min: 0, max: 1000, step: 5, hardMax: 10000, help: 'Corrige según la distancia lateral de la línea.' },
+        { key: 'kd', label: 'Ganancia derivativa', unit: 'rad/m', value: 7, min: 0, max: 12, step: 0.1, hardMax: 100, help: 'Amortigua cambios rápidos de posición; demasiado puede amplificar ruido.' },
+      ],
+    },
+    {
+      name: 'Agarre, motores y cabeceo', open: false,
+      items: [
+        { key: 'mu', label: 'Coeficiente de agarre', unit: 'μ', value: 0.8, min: 0.05, max: 1.5, step: 0.05, hardMax: 5, help: 'Menos agarre limita fuerza lateral y longitudinal; facilita trompos.' },
+        { key: 'mass', label: 'Masa total', unit: 'kg', value: 0.38, min: 0.1, max: 1, step: 0.02, hardMax: 10, help: 'Estimación inicial; pesa el robot para reemplazarla.' },
+        { key: 'yawInertia', label: 'Inercia de giro', unit: 'g·m²', value: 2.5, min: 0.2, max: 10, step: 0.1, hardMax: 100, help: 'Valor estimado: cuanto mayor, más cuesta girar o corregir.' },
+        { key: 'motorTau', label: 'Respuesta de motores', unit: 'ms', value: 70, min: 5, max: 300, step: 5, hardMax: 3000, help: 'Retardo mecánico aproximado; no hay curva de par medida.' },
+        { key: 'motorBias', label: 'Diferencia entre motores', unit: '%', value: 0, min: -30, max: 30, step: 1, hardMax: 100, hardMin: -100, help: 'Negativo: rueda izquierda más fuerte, tiende a girar a la derecha.' },
+        { key: 'accelLimit', label: 'Aceleración ordenada', unit: 'm/s²', value: 3.2, min: 0.1, max: 8, step: 0.1, hardMax: 100, help: 'Rampa del controlador; más alta puede levantar la nariz.' },
+        { key: 'brakeLimit', label: 'Frenado ordenado', unit: 'm/s²', value: 8, min: 0.1, max: 15, step: 0.2, hardMax: 100, help: 'Reducción de velocidad al detectar una curva.' },
+        { key: 'lateralLimit', label: 'Límite lateral del control', unit: 'm/s²', value: 4, min: 0.1, max: 12, step: 0.1, hardMax: 100, help: 'Reduce la velocidad solicitada cuando v × giro es alto.' },
+        { key: 'pitchGain', label: 'Sensibilidad de nariz', unit: '°/(m/s²)', value: 0.65, min: 0, max: 3, step: 0.05, hardMax: 20, help: 'Modelo de esfuerzo: subida frontal por aceleración, no medida real.' },
+        { key: 'pitchMax', label: 'Elevación máxima', unit: '°', value: 5, min: 0, max: 12, step: 0.25, hardMax: 45, help: 'Tope de la elevación visual y óptica de la regleta.' },
+      ],
+    },
+    {
+      name: 'Geometría y sensores', open: false,
+      items: [
+        { key: 'wheelRadius', label: 'Radio de rueda', unit: 'mm', value: 10, min: 2, max: 30, step: 0.5, hardMax: 100, help: 'Medido: diámetro aproximado 20 mm.' },
+        { key: 'wheelBase', label: 'Separación entre ruedas', unit: 'mm', value: 120, min: 20, max: 250, step: 2, hardMax: 1000, help: 'Distancia centro a centro usada en el desacople.' },
+        { key: 'sensorLeadMin', label: 'Adelanto en extremos', unit: 'mm', value: 160, min: 40, max: 300, step: 1, hardMax: 1000, help: 'La regleta es curva; sus extremos están menos adelantados.' },
+        { key: 'sensorLeadMax', label: 'Adelanto en el centro', unit: 'mm', value: 175, min: 40, max: 300, step: 1, hardMax: 1000, help: 'Mantén este valor igual o mayor al adelanto de los extremos.' },
+        { key: 'sensorPitch', label: 'Paso entre sensores', unit: 'mm', value: 6.1, min: 1, max: 12, step: 0.1, hardMax: 50, help: 'Separación óptica de la regleta SixteenLine.' },
+        { key: 'sensorHeight', label: 'Altura inicial', unit: 'mm', value: 3, min: 0.5, max: 15, step: 0.25, hardMax: 100, help: 'Aproximadamente 3 mm al piso en la referencia.' },
+        { key: 'heightFalloff', label: 'Tolerancia óptica', unit: 'mm', value: 7, min: 1, max: 20, step: 0.5, hardMax: 100, help: 'Al subir la nariz, cae la intensidad de la línea detectada.' },
+        { key: 'sensorNoise', label: 'Ruido de lectura', unit: '%', value: 1, min: 0, max: 20, step: 0.5, hardMax: 100, help: 'Variación aleatoria de reflectancia en cada lectura.' },
+        { key: 'controlPeriod', label: 'Periodo de lectura', unit: 'ms', value: 4, min: 2, max: 20, step: 1, hardMax: 100, help: 'Firmware físico propuesto: 4 ms. Más lento recorre más distancia por muestra.' },
+      ],
+    },
+  ];
+
+  const definitions = new Map(groups.flatMap((g) => g.items.map((item) => [item.key, item])));
+  const params = Object.fromEntries([...definitions].map(([key, def]) => [key, def.value]));
+  const bounds = Object.fromEntries([...definitions].map(([key, def]) => [key, { min: def.min, max: def.max }]));
+  const presets = {
+    base: {},
+    firmware3000: { motorRpm: 3000, straightRpm: 1950, curveRpm: 550,
+      kp: 420, kd: 1.2 },
+    slippery: { mu: 0.23, lateralLimit: 8, straightRpm: 1950 },
+    lift: { pitchGain: 2.2, pitchMax: 9, accelLimit: 6.5, sensorHeight: 3 },
+    bias: { motorBias: -18, straightRpm: 1950, mu: 0.6 },
+  };
+  const advancedOnlyControls = new Set([
+    'motorRpm', 'straightRpm', 'curveRpm', 'maxYawRate',
+    'yawSlewRate', 'kp', 'kd', 'lateralLimit',
+  ]);
+  let controlMode = 'advanced3000';
+  let advancedMotorRpm = 3000;
+
+  let state;
+  let running = false;
+  let followView = false;
+  let lastFrameMs = 0;
+  let accumulator = 0;
+  let lastUiMs = 0;
+  let canvasWidth = 0;
+  let canvasHeight = 0;
+  let lineMask;
+  let trackSamples = [];
+  let startArcMm = 0;
+  let failureMessage = '';
+  let rng = 0x13579bdf;
+
+  function clamp(value, low, high) { return Math.max(low, Math.min(high, value)); }
+  function moveToward(value, target, maxDelta) {
+    return value + clamp(target - value, -maxDelta, maxDelta);
+  }
+  function rpmToMps(rpm) { return rpm * 2 * Math.PI * params.wheelRadius / 1000 / 60; }
+  function mpsToRpm(mps) { return mps * 60 / (2 * Math.PI * params.wheelRadius / 1000); }
+  function loadedRpm() {
+    const nominalRpm = controlMode === 'reference1000' ? 1000 : params.motorRpm;
+    return Math.max(0, nominalRpm * params.supplyV / 6 * params.loadFactor);
+  }
+  function randomSigned() {
+    rng ^= rng << 13; rng ^= rng >>> 17; rng ^= rng << 5;
+    return ((rng >>> 0) / 4294967296) * 2 - 1;
+  }
+
+  function initializeTrack() {
+    const raster = document.createElement('canvas');
+    raster.width = TRACK_W;
+    raster.height = TRACK_H;
+    const rctx = raster.getContext('2d', { willReadFrequently: true });
+    rctx.fillStyle = '#fff';
+    rctx.fillRect(0, 0, TRACK_W, TRACK_H);
+    rctx.strokeStyle = '#000';
+    rctx.lineWidth = 18;
+    rctx.lineCap = 'round';
+    rctx.lineJoin = 'round';
+    rctx.stroke(trackPath);
+    lineMask = rctx.getImageData(0, 0, TRACK_W, TRACK_H).data;
+
+    trackSamples = [];
+    for (let mm = 0; mm < trackLengthMm; mm += 4) {
+      const p = trackElement.getPointAtLength(mm);
+      trackSamples.push({ x: p.x, y: p.y, s: mm });
+    }
+    const p = trackElement.getPointAtLength(trackLengthMm);
+    trackSamples.push({ x: p.x, y: p.y, s: trackLengthMm });
+  }
+
+  function blacknessAt(xMm, yMm) {
+    const x = Math.round(xMm);
+    const y = Math.round(yMm);
+    if (x < 0 || y < 0 || x >= TRACK_W || y >= TRACK_H) return 0;
+    return 1 - lineMask[(y * TRACK_W + x) * 4] / 255;
+  }
+
+  function sensorLeadMm(index) {
+    const normalized = (index - 7.5) / 7.5;
+    return params.sensorLeadMin + (params.sensorLeadMax - params.sensorLeadMin) *
+      (1 - normalized * normalized);
+  }
+
+  function pointOnRobot(forwardMm, lateralMm) {
+    const c = Math.cos(state.heading);
+    const s = Math.sin(state.heading);
+    return {
+      x: state.x * 1000 + c * forwardMm - s * lateralMm,
+      y: state.y * 1000 + s * forwardMm + c * lateralMm,
+    };
+  }
+
+  function senseLine() {
+    const strengths = [];
+    const leadCenter = 0.5 * (params.sensorLeadMin + params.sensorLeadMax);
+    const sensorHeightMm = params.sensorHeight +
+      leadCenter * Math.sin(state.pitch);
+    const excessHeight = Math.max(0, sensorHeightMm - 3);
+    const opticalGain = Math.exp(-0.5 * Math.pow(excessHeight / params.heightFalloff, 2));
+    let peak = 0;
+    let sum = 0;
+    let weighted = 0;
+    for (let i = 0; i < 16; i++) {
+      const lateralMm = (i - 7.5) * params.sensorPitch;
+      const p = pointOnRobot(sensorLeadMm(i), lateralMm);
+      const c = Math.cos(state.heading);
+      const s = Math.sin(state.heading);
+      const spread = 1.5;
+      const optical = (
+        blacknessAt(p.x, p.y) +
+        blacknessAt(p.x - s * spread, p.y + c * spread) +
+        blacknessAt(p.x + s * spread, p.y - c * spread)
+      ) / 3;
+      const intensity = clamp(optical * opticalGain +
+        randomSigned() * params.sensorNoise / 100, 0, 1) * 1000;
+      strengths.push(intensity);
+      peak = Math.max(peak, intensity);
+      const force = Math.max(0, intensity - 70);
+      weighted += force * lateralMm;
+      sum += force;
+    }
+    const valid = peak >= 230 && sum >= 420;
+    return {
+      valid, positionM: valid ? weighted / sum / 1000 : 0,
+      peak, sum, strengths, sensorHeightMm,
+    };
+  }
+
+  function updateLongitudinal(target, dt) {
+    const desiredAcceleration = clamp(10 * (target - state.speedCommand),
+      -params.brakeLimit, params.accelLimit);
+    const jerk = desiredAcceleration < state.accelCommand ? 120 : 22;
+    state.accelCommand = moveToward(state.accelCommand, desiredAcceleration, jerk * dt);
+    const before = state.speedCommand;
+    state.speedCommand = Math.max(0, before + state.accelCommand * dt);
+    if ((target - before) * (target - state.speedCommand) <= 0) {
+      state.speedCommand = target;
+      state.accelCommand = 0;
+    }
+  }
+
+  // Traducción de la lógica del firmware EXITO_v1.ino a órdenes de rueda.
+  // Las lecturas ya normalizadas vienen del modelo óptico, no del ADC real.
+  function referencePwmToRpm(pwm) {
+    const magnitude = Math.abs(Math.trunc(pwm));
+    if (magnitude < 18) return 0;
+    return Math.sign(pwm) * Math.max(52, Math.min(255, magnitude)) / 255 * loadedRpm();
+  }
+
+  function setReferenceWheels(leftPwm, rightPwm) {
+    state.commandL = referencePwmToRpm(leftPwm);
+    state.commandR = referencePwmToRpm(rightPwm);
+    state.referencePwmL = leftPwm;
+    state.referencePwmR = rightPwm;
+  }
+
+  function updateReferenceController(dt) {
+    const reading = senseLine();
+    state.reading = reading;
+    let sum = 0;
+    let weighted = 0;
+    let leftExtreme = 0;
+    let rightExtreme = 0;
+    for (let i = 0; i < 16; i++) {
+      const raw = reading.strengths[i];
+      const force = Math.max(0, raw - 75);
+      sum += force;
+      weighted += force * i * 1000;
+      if (i <= 2) leftExtreme = Math.max(leftExtreme, raw);
+      if (i >= 13) rightExtreme = Math.max(rightExtreme, raw);
+    }
+    reading.valid = reading.peak >= 250 && sum >= 350;
+    if (!reading.valid) {
+      state.lossTime += dt;
+      state.referenceIntegral = 0;
+      state.referenceDerivative = 0;
+      state.firstReading = true;
+      if (state.lossTime >= 0.9 || state.lastDirection === 0) {
+        setReferenceWheels(0, 0);
+      } else if (state.lastDirection < 0) {
+        if (state.lossTime < 0.12) setReferenceWheels(52, 170);
+        else setReferenceWheels(-60, 170);
+      } else if (state.lossTime < 0.12) {
+        setReferenceWheels(170, 52);
+      } else {
+        setReferenceWheels(170, -60);
+      }
+      return;
+    }
+
+    state.lossTime = 0;
+    const error = clamp((weighted / sum - 7500) / 7500, -1, 1);
+    reading.positionM = error * (7.5 * params.sensorPitch / 1000);
+    reading.firmwareError = error;
+    if (error < -0.04) state.lastDirection = -1;
+    else if (error > 0.04) state.lastDirection = 1;
+
+    // El pivote solo se permite mientras el sensor extremo observa la línea.
+    if (error <= -0.52 && leftExtreme >= 500 && rightExtreme < 500) {
+      state.referenceIntegral = 0;
+      state.referenceDerivative = 0;
+      state.firstReading = true;
+      state.lastDirection = -1;
+      setReferenceWheels(-75, 205);
+      return;
+    }
+    if (error >= 0.52 && rightExtreme >= 500 && leftExtreme < 500) {
+      state.referenceIntegral = 0;
+      state.referenceDerivative = 0;
+      state.firstReading = true;
+      state.lastDirection = 1;
+      setReferenceWheels(205, -75);
+      return;
+    }
+
+    const boundedDt = clamp(dt, 0.001, 0.050);
+    const derivativeRaw = state.firstReading ? 0 :
+      (error - state.referencePreviousError) / boundedDt;
+    state.firstReading = false;
+    state.referenceDerivative += 0.28 *
+      (derivativeRaw - state.referenceDerivative);
+    if (Math.abs(error) < 0.35) {
+      state.referenceIntegral = clamp(state.referenceIntegral + error * boundedDt,
+        -0.45, 0.45);
+    } else {
+      state.referenceIntegral *= 0.82;
+    }
+    const derivativePwm = clamp(1.6 * state.referenceDerivative, -65, 65);
+    const correction = Math.trunc(clamp(
+      130 * error + 4 * state.referenceIntegral + derivativePwm, -205, 205));
+    const basePwm = Math.trunc(clamp(165 - Math.abs(error) * 82 -
+      Math.min(Math.abs(state.referenceDerivative) * 1.45, 72), 70, 165));
+    setReferenceWheels(clamp(basePwm + correction, -255, 255),
+      clamp(basePwm - correction, -255, 255));
+    state.referencePreviousError = error;
+  }
+
+  function updateController(dt) {
+    if (controlMode === 'reference1000') {
+      updateReferenceController(dt);
+      return;
+    }
+    const reading = senseLine();
+    state.reading = reading;
+    let targetSpeed;
+    let targetYaw;
+    const maxRpm = loadedRpm();
+    const straightRpm = Math.min(params.straightRpm, maxRpm);
+    const curveRpm = Math.min(params.curveRpm, straightRpm);
+
+    if (reading.valid) {
+      if (state.lossTime > 0) {
+        state.firstReading = true;
+        state.severity = 1;
+      }
+      state.lossTime = 0;
+      const posAlpha = dt / (0.008 + dt);
+      state.positionFilter += posAlpha * (reading.positionM - state.positionFilter);
+      const magnitude = Math.abs(state.positionFilter);
+      const position = magnitude <= 0.0025 ? 0 :
+        Math.sign(state.positionFilter) * (magnitude - 0.0025);
+      let dRaw = 0;
+      if (!state.firstReading) {
+        dRaw = clamp((position - state.prevPosition) / dt, -1.5, 1.5);
+      }
+      state.firstReading = false;
+      state.prevPosition = position;
+      state.dFilter += dt / (0.020 + dt) * (dRaw - state.dFilter);
+      if (Math.abs(position) > 0.001) state.lastDirection = Math.sign(position);
+
+      targetYaw = clamp(params.kp * position + params.kd * state.dFilter,
+        -params.maxYawRate, params.maxYawRate);
+      const halfSpan = 7.5 * params.sensorPitch / 1000;
+      const instantSeverity = clamp(Math.max(
+        Math.abs(reading.positionM) / halfSpan,
+        Math.abs(state.dFilter) / 0.70), 0, 1);
+      const tau = instantSeverity > state.severity ? 0.008 : 0.090;
+      state.severity += dt / (tau + dt) * (instantSeverity - state.severity);
+      const blend = Math.pow(clamp(state.severity, 0, 1), 0.68);
+      targetSpeed = rpmToMps(straightRpm) - blend *
+        (rpmToMps(straightRpm) - rpmToMps(curveRpm));
+      targetSpeed = Math.min(targetSpeed,
+        params.lateralLimit / (Math.abs(targetYaw) + 0.30));
+      if (state.time < 0.650) targetSpeed = Math.min(targetSpeed,
+        rpmToMps(Math.min(1000, maxRpm)));
+      targetSpeed = clamp(targetSpeed,
+        rpmToMps(Math.min(250, maxRpm)), rpmToMps(straightRpm));
+    } else {
+      state.lossTime += dt;
+      state.dFilter = 0;
+      if (state.lossTime < 0.030) {
+        targetSpeed = state.speedCommand;
+        targetYaw = state.yawCommand;
+      } else if (state.lossTime < 1.1 && state.lastDirection !== 0) {
+        targetSpeed = rpmToMps(Math.min(250, maxRpm));
+        targetYaw = state.lastDirection * Math.min(6, params.maxYawRate);
+      } else {
+        targetSpeed = 0;
+        targetYaw = 0;
+      }
+    }
+
+    updateLongitudinal(targetSpeed, dt);
+    state.yawCommand = moveToward(state.yawCommand, targetYaw,
+      params.yawSlewRate * dt);
+    const wheelBaseM = params.wheelBase / 1000;
+    let left = mpsToRpm(state.speedCommand + 0.5 * wheelBaseM * state.yawCommand);
+    let right = mpsToRpm(state.speedCommand - 0.5 * wheelBaseM * state.yawCommand);
+    const maxAbs = Math.max(Math.abs(left), Math.abs(right));
+    if (maxAbs > maxRpm && maxAbs > 0) {
+      const factor = maxRpm / maxAbs;
+      left *= factor;
+      right *= factor;
+    }
+    state.commandL = left;
+    state.commandR = right;
+  }
+
+  function updatePhysics(dt) {
+    const maxMotor = loadedRpm();
+    const response = dt / (params.motorTau / 1000 + dt);
+    const bias = params.motorBias / 100;
+    const leftTarget = clamp(state.commandL * (1 - bias), -maxMotor, maxMotor);
+    const rightTarget = clamp(state.commandR * (1 + bias), -maxMotor, maxMotor);
+    state.motorL += response * (leftTarget - state.motorL);
+    state.motorR += response * (rightTarget - state.motorR);
+
+    const radius = params.wheelRadius / 1000;
+    const base = params.wheelBase / 1000;
+    const uL = state.motorL * (2 * Math.PI * radius / 60);
+    const uR = state.motorR * (2 * Math.PI * radius / 60);
+    const desiredV = 0.5 * (uL + uR);
+    const desiredYaw = (uL - uR) / base; // giro horario positivo
+    const mass = params.mass;
+    const inertia = params.yawInertia / 1000;
+    const desiredAx = clamp((desiredV - state.vx) / 0.055,
+      -params.brakeLimit, params.accelLimit);
+    const desiredAlpha = clamp((desiredYaw - state.omega) / 0.055,
+      -100, 100);
+    const lateralForce = mass * (state.omega * state.vx - state.vy / 0.070);
+    let leftForce = mass * desiredAx / 2 + inertia * desiredAlpha / base;
+    let rightForce = mass * desiredAx / 2 - inertia * desiredAlpha / base;
+    let lateralLeft = lateralForce / 2;
+    let lateralRight = lateralForce / 2;
+
+    // Círculo de fricción: giro y aceleración compiten por el mismo agarre.
+    const maxForceEach = params.mu * mass * GRAVITY / 2;
+    const requestedL = Math.hypot(leftForce, lateralLeft);
+    const requestedR = Math.hypot(rightForce, lateralRight);
+    const scaleL = requestedL > maxForceEach ? maxForceEach / requestedL : 1;
+    const scaleR = requestedR > maxForceEach ? maxForceEach / requestedR : 1;
+    leftForce *= scaleL; lateralLeft *= scaleL;
+    rightForce *= scaleR; lateralRight *= scaleR;
+    const instantSlip = clamp(1 - Math.min(scaleL, scaleR), 0, 1);
+    state.slip += dt / (0.08 + dt) * (instantSlip - state.slip);
+
+    const ax = (leftForce + rightForce) / mass + state.omega * state.vy -
+      0.10 * state.vx;
+    const ay = (lateralLeft + lateralRight) / mass - state.omega * state.vx;
+    const alpha = base * (leftForce - rightForce) / (2 * inertia) -
+      0.25 * state.omega;
+    state.vx += ax * dt;
+    state.vy += ay * dt;
+    state.omega += alpha * dt;
+    state.heading += state.omega * dt;
+    const c = Math.cos(state.heading);
+    const s = Math.sin(state.heading);
+    state.x += (c * state.vx - s * state.vy) * dt;
+    state.y += (s * state.vx + c * state.vy) * dt;
+
+    const pitchDegrees = clamp(Math.max(0, ax) * params.pitchGain,
+      0, params.pitchMax);
+    state.pitch += dt / (0.10 + dt) *
+      (pitchDegrees * Math.PI / 180 - state.pitch);
+    state.time += dt;
+    state.controlElapsed += dt;
+    const controlDt = Math.max(0.002, params.controlPeriod / 1000);
+    if (state.controlElapsed + 1e-9 >= controlDt) {
+      const elapsed = state.controlElapsed;
+      state.controlElapsed = 0;
+      updateController(elapsed);
+    }
+
+    if (state.x < -0.1 || state.y < -0.1 ||
+        state.x > 1.9 || state.y > 1.3) {
+      running = false;
+      failureMessage = 'El robot salió del tablero. Reduce velocidad o aumenta agarre.';
+    }
+    if (state.trailClock + dt >= 0.025) {
+      state.trailClock = 0;
+      state.trail.push([state.x, state.y]);
+      if (state.trail.length > 900) state.trail.shift();
+    } else {
+      state.trailClock += dt;
+    }
+  }
+
+  function nearestTrackArc(xMm, yMm) {
+    let bestD2 = Infinity;
+    let bestS = 0;
+    for (let i = 0; i < trackSamples.length; i++) {
+      const p = trackSamples[i];
+      const dx = xMm - p.x;
+      const dy = yMm - p.y;
+      const d2 = dx * dx + dy * dy;
+      if (d2 < bestD2) { bestD2 = d2; bestS = p.s; }
+    }
+    return { s: bestS, distanceMm: Math.sqrt(bestD2) };
+  }
+
+  function updateLap() {
+    const p = pointOnRobot(params.sensorLeadMax, 0);
+    const nearest = nearestTrackArc(p.x, p.y);
+    if (nearest.distanceMm > 65 || !state.reading?.valid) return;
+    let delta = nearest.s - state.lastArcMm;
+    if (delta < -trackLengthMm / 2) delta += trackLengthMm;
+    if (delta > trackLengthMm / 2) delta -= trackLengthMm;
+    if (Math.abs(delta) < 120) {
+      state.progressMm += Math.max(0, delta);
+      if (state.progressMm >= trackLengthMm) {
+        state.laps += 1;
+        state.progressMm -= trackLengthMm;
+        state.lastLapSeconds = state.time - state.lapStartedAt;
+        state.lapStartedAt = state.time;
+      }
+    }
+    state.lastArcMm = nearest.s;
+  }
+
+  function resetState() {
+    rng = 0x13579bdf;
+    state = {
+      x: 1.125, y: 0.150, heading: 0, vx: 0, vy: 0, omega: 0, pitch: 0,
+      motorL: 0, motorR: 0, commandL: 0, commandR: 0,
+      speedCommand: 0, accelCommand: 0, yawCommand: 0,
+      positionFilter: 0, prevPosition: 0, dFilter: 0, severity: 0,
+      referencePreviousError: 0, referenceIntegral: 0,
+      referenceDerivative: 0, referencePwmL: 0, referencePwmR: 0,
+      firstReading: true, lastDirection: 0, lossTime: 0,
+      reading: null, slip: 0, time: 0, controlElapsed: 0,
+      trail: [], trailClock: 0, laps: 0, progressMm: 0,
+      lapStartedAt: 0, lastLapSeconds: null, lastArcMm: 0,
+    };
+    const p = pointOnRobot(params.sensorLeadMax, 0);
+    startArcMm = nearestTrackArc(p.x, p.y).s;
+    state.lastArcMm = startArcMm;
+    state.reading = senseLine();
+    lastFrameMs = 0;
+    accumulator = 0;
+    failureMessage = '';
+    updateUi(true);
+    render();
+  }
+
+  function resizeCanvas() {
+    const bounds = canvas.getBoundingClientRect();
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    canvasWidth = bounds.width;
+    canvasHeight = bounds.height;
+    canvas.width = Math.max(1, Math.round(bounds.width * dpr));
+    canvas.height = Math.max(1, Math.round(bounds.height * dpr));
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    render();
+  }
+
+  function drawRobot() {
+    ctx.save();
+    ctx.translate(state.x * 1000, state.y * 1000);
+    ctx.rotate(state.heading);
+
+    // Dos soportes paralelos; geometría superior simplificada del prototipo.
+    ctx.strokeStyle = '#a5b4bf';
+    ctx.lineWidth = 9;
+    ctx.lineCap = 'round';
+    for (const side of [-1, 1]) {
+      ctx.beginPath();
+      ctx.moveTo(40, side * 47);
+      ctx.lineTo(params.sensorLeadMin, side * 47);
+      ctx.stroke();
+    }
+
+    ctx.fillStyle = '#164f39';
+    ctx.fillRect(-55, -51, 106, 102);
+    ctx.fillStyle = '#0c301f';
+    ctx.fillRect(-39, -36, 47, 72);
+    ctx.fillStyle = '#213845';
+    ctx.fillRect(15, -31, 23, 62);
+
+    const wheelY = params.wheelBase / 2;
+    ctx.fillStyle = '#434c52';
+    ctx.fillRect(-params.wheelRadius, -wheelY - 20,
+      params.wheelRadius * 2, 40);
+    ctx.fillRect(-params.wheelRadius, wheelY - 20,
+      params.wheelRadius * 2, 40);
+    ctx.fillStyle = '#717d84';
+    ctx.fillRect(-params.wheelRadius + 3, -wheelY - 16,
+      Math.max(2, params.wheelRadius * 2 - 6), 32);
+    ctx.fillRect(-params.wheelRadius + 3, wheelY - 16,
+      Math.max(2, params.wheelRadius * 2 - 6), 32);
+
+    ctx.strokeStyle = '#167456';
+    ctx.lineWidth = 12;
+    ctx.beginPath();
+    ctx.moveTo(params.sensorLeadMin, -55);
+    ctx.quadraticCurveTo(params.sensorLeadMax + 14, 0,
+      params.sensorLeadMin, 55);
+    ctx.stroke();
+    for (let i = 0; i < 16; i++) {
+      const lateral = (i - 7.5) * params.sensorPitch;
+      const intensity = state.reading?.strengths[i] || 0;
+      ctx.beginPath();
+      ctx.arc(sensorLeadMm(i), lateral, 3.5, 0, Math.PI * 2);
+      ctx.fillStyle = intensity > 230 ? '#ec8333' : '#d8e9dc';
+      ctx.fill();
+    }
+
+    // Pequeña flecha para que el sentido de avance nunca sea ambiguo.
+    ctx.fillStyle = '#e8f7ee';
+    ctx.beginPath();
+    ctx.moveTo(47, 0); ctx.lineTo(27, -9); ctx.lineTo(27, 9);
+    ctx.closePath(); ctx.fill();
+    ctx.restore();
+  }
+
+  function render() {
+    if (!ctx || !canvasWidth || !canvasHeight) return;
+    ctx.fillStyle = '#f7f9fa';
+    ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+    const fullScale = Math.min((canvasWidth - 18) / TRACK_W,
+      (canvasHeight - 18) / TRACK_H);
+    const scale = followView ? fullScale * 2.55 : fullScale;
+    const offsetX = followView
+      ? canvasWidth / 2 - state.x * 1000 * scale
+      : (canvasWidth - TRACK_W * scale) / 2;
+    const offsetY = followView
+      ? canvasHeight / 2 - state.y * 1000 * scale
+      : (canvasHeight - TRACK_H * scale) / 2;
+
+    ctx.save();
+    ctx.translate(offsetX, offsetY);
+    ctx.scale(scale, scale);
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, TRACK_W, TRACK_H);
+    ctx.beginPath();
+    ctx.rect(0, 0, TRACK_W, TRACK_H);
+    ctx.clip();
+
+    // Marcas sutiles de las 50 piezas A4: 10 columnas × 5 filas.
+    ctx.strokeStyle = '#e9eef0';
+    ctx.lineWidth = 1.5;
+    for (let x = 180; x < TRACK_W; x += 180) {
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, TRACK_H); ctx.stroke();
+    }
+    for (let y = 240; y < TRACK_H; y += 240) {
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(TRACK_W, y); ctx.stroke();
+    }
+
+    ctx.strokeStyle = '#171c20';
+    ctx.lineWidth = 18;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.stroke(trackPath);
+
+    if (state.trail.length > 1) {
+      ctx.beginPath();
+      ctx.moveTo(state.trail[0][0] * 1000, state.trail[0][1] * 1000);
+      for (let i = 1; i < state.trail.length; i++) {
+        ctx.lineTo(state.trail[i][0] * 1000, state.trail[i][1] * 1000);
+      }
+      ctx.strokeStyle = 'rgba(12, 142, 129, .45)';
+      ctx.lineWidth = 5;
+      ctx.stroke();
+    }
+    drawRobot();
+    ctx.restore();
+
+    if (followView) {
+      ctx.fillStyle = 'rgba(16, 27, 44, .81)';
+      ctx.fillRect(10, 10, 108, 27);
+      ctx.fillStyle = '#fff';
+      ctx.font = '700 12px system-ui';
+      ctx.fillText('VISTA SEGUIDOR', 18, 28);
+    }
+  }
+
+  function updateUi(force = false) {
+    const status = $('statusBadge');
+    let label = 'Lista para iniciar';
+    let tone = '';
+    if (failureMessage) { label = 'Fuera de pista'; tone = 'danger'; }
+    else if (running && state.lossTime >= 0.030) {
+      label = 'Buscando línea'; tone = 'warning';
+    } else if (running) { label = 'Siguiendo línea'; }
+    else if (state.time > 0) { label = 'Pausada'; }
+    status.textContent = label;
+    status.dataset.tone = tone;
+    $('playButton').textContent = running ? 'Pausar' : (state.time > 0 ? 'Continuar' : 'Iniciar');
+    $('canvasOverlay').hidden = running || (state.time > 0 && !failureMessage);
+    if (!running && state.time === 0) $('canvasOverlay').textContent =
+      'Pulsa Iniciar para probar el robot';
+    if (failureMessage) {
+      $('canvasOverlay').hidden = false;
+      $('canvasOverlay').textContent = failureMessage;
+    }
+
+    $('timeValue').textContent = `${numberFormat.format(state.time)} s`;
+    $('speedValue').textContent = `${numberFormat.format(Math.hypot(state.vx, state.vy))} m/s`;
+    $('slipValue').textContent = `${Math.round(state.slip * 100)} %`;
+    const sensorHeight = state.reading?.sensorHeightMm ?? params.sensorHeight;
+    $('pitchValue').textContent = `${numberFormat.format(state.pitch * 180 / Math.PI)}° · ${numberFormat.format(sensorHeight)} mm`;
+    $('profileAssembly').style.transform = `rotate(${-state.pitch * 180 / Math.PI}deg)`;
+    const maxRpm = loadedRpm();
+    let note = state.reading?.valid
+      ? `Línea detectada. Error lateral: ${numberFormat.format(state.reading.positionM * 1000)} mm.`
+      : `Línea no detectada: búsqueda hacia el último lado conocido.`;
+    if (state.laps > 0) {
+      note += ` Vueltas: ${state.laps}; última: ${numberFormat.format(state.lastLapSeconds)} s.`;
+    }
+    if (controlMode === 'reference1000') {
+      note += ` Firmware de referencia: PWM izquierdo ${state.referencePwmL}, derecho ${state.referencePwmR}; en recta el límite base es 165/255.`;
+    } else if (params.straightRpm > maxRpm + 1) {
+      note += ` La orden de recta se limita a ${Math.round(maxRpm)} RPM estimadas con el voltaje y carga actuales.`;
+    }
+    if (force && !running && state.time === 0) {
+      note = controlMode === 'reference1000'
+        ? 'Referencia de 1000 RPM lista: 16 sensores, centroide, PID y PWM original (recta hasta 165/255).'
+        : 'Regleta centrada. El candidato de 3000 RPM usa 16 lecturas, centroide, PD y velocidades independientes.';
+    }
+    $('readout').textContent = note;
+  }
+
+  function loop(frameMs) {
+    if (!lastFrameMs) lastFrameMs = frameMs;
+    const frameSeconds = Math.min(0.05, Math.max(0, (frameMs - lastFrameMs) / 1000));
+    lastFrameMs = frameMs;
+    if (running) {
+      accumulator = Math.min(0.05, accumulator + frameSeconds);
+      while (accumulator >= STEP) {
+        updatePhysics(STEP);
+        accumulator -= STEP;
+        if (!running) break;
+      }
+      updateLap();
+      render();
+    }
+    if (frameMs - lastUiMs > 120) {
+      lastUiMs = frameMs;
+      updateUi();
+    }
+    requestAnimationFrame(loop);
+  }
+
+  function decimalStep(value) {
+    const step = String(value);
+    return step.includes('.') ? step.split('.')[1].length : 0;
+  }
+  function formatted(value, def) {
+    const places = Math.max(decimalStep(def.step), 0);
+    return `${Number(value).toFixed(places).replace('.', ',')} ${def.unit}`;
+  }
+  function makeParameter(def) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'parameter';
+    wrapper.innerHTML = `
+      <div class="parameter-heading">
+        <label for="range-${def.key}">${def.label}</label>
+        <output id="output-${def.key}" for="range-${def.key}"></output>
+      </div>
+      <input type="range" id="range-${def.key}" data-key="${def.key}">
+      <div class="parameter-bottom">
+        <label>Mínimo<input type="number" id="min-${def.key}" inputmode="decimal" aria-label="Mínimo de ${def.label}"></label>
+        <label>Valor<input type="number" id="value-${def.key}" inputmode="decimal" aria-label="Valor de ${def.label}"></label>
+        <label>Máximo<input type="number" id="max-${def.key}" inputmode="decimal" aria-label="Máximo de ${def.label}"></label>
+      </div>
+      <p class="parameter-help">${def.help}</p>`;
+    return wrapper;
+  }
+
+  function buildControls() {
+    const host = $('parameterGroups');
+    for (const group of groups) {
+      const details = document.createElement('details');
+      details.className = 'parameter-group';
+      details.open = group.open;
+      const summary = document.createElement('summary');
+      summary.textContent = group.name;
+      const grid = document.createElement('div');
+      grid.className = 'parameter-grid';
+      for (const def of group.items) grid.appendChild(makeParameter(def));
+      details.append(summary, grid);
+      host.appendChild(details);
+    }
+    for (const def of definitions.values()) {
+      syncControl(def.key);
+      $(`range-${def.key}`).addEventListener('input', (event) => {
+        params[def.key] = Number(event.target.value);
+        syncControl(def.key);
+        saveSettings();
+      });
+      $(`value-${def.key}`).addEventListener('change', (event) => {
+        const value = Number(event.target.value);
+        if (Number.isFinite(value)) params[def.key] = clamp(value,
+          bounds[def.key].min, bounds[def.key].max);
+        syncControl(def.key);
+        saveSettings();
+      });
+      for (const kind of ['min', 'max']) {
+        $(`${kind}-${def.key}`).addEventListener('change', (event) => {
+          const value = Number(event.target.value);
+          const safeMin = def.hardMin ?? 0;
+          const safeMax = def.hardMax;
+          if (Number.isFinite(value)) {
+            if (kind === 'min') bounds[def.key].min =
+              clamp(value, safeMin, bounds[def.key].max - def.step);
+            else bounds[def.key].max = clamp(value,
+              bounds[def.key].min + def.step, safeMax);
+          }
+          params[def.key] = clamp(params[def.key],
+            bounds[def.key].min, bounds[def.key].max);
+          syncControl(def.key);
+          saveSettings();
+        });
+      }
+    }
+  }
+
+  function syncControl(key) {
+    const def = definitions.get(key);
+    const bound = bounds[key];
+    const range = $(`range-${key}`);
+    range.min = bound.min;
+    range.max = bound.max;
+    range.step = def.step;
+    range.value = params[key];
+    $(`output-${key}`).value = formatted(params[key], def);
+    $(`value-${key}`).value = params[key];
+    $(`value-${key}`).step = def.step;
+    $(`min-${key}`).value = bound.min;
+    $(`min-${key}`).step = def.step;
+    $(`max-${key}`).value = bound.max;
+    $(`max-${key}`).step = def.step;
+  }
+
+  function saveSettings() {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ params, bounds,
+      controlMode, advancedMotorRpm })); }
+    catch (_) { /* almacenamiento no disponible en algunos archivos locales */ }
+  }
+
+  function loadSettings() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+      if (saved.controlMode === 'reference1000') controlMode = 'reference1000';
+      if (Number.isFinite(saved.advancedMotorRpm)) advancedMotorRpm = saved.advancedMotorRpm;
+      for (const [key, def] of definitions) {
+        const b = saved.bounds?.[key];
+        if (b && Number.isFinite(b.min) && Number.isFinite(b.max)) {
+          const min = clamp(b.min, def.hardMin ?? 0, def.hardMax - def.step);
+          const max = clamp(b.max, min + def.step, def.hardMax);
+          bounds[key] = { min, max };
+        }
+        const v = saved.params?.[key];
+        if (Number.isFinite(v)) params[key] = clamp(v, bounds[key].min, bounds[key].max);
+      }
+      if (controlMode === 'reference1000') params.motorRpm = 1000;
+    } catch (_) { /* preferencias malformadas: usar valores de fábrica */ }
+  }
+
+  function syncModeUi() {
+    $('controllerMode').value = controlMode;
+    $('modeExplanation').textContent = controlMode === 'reference1000'
+      ? 'Comparación con el firmware exitoso: motor nominal de 1000 RPM, PWM de recta hasta 165/255, PID y búsqueda originales. La calibración se supone hecha; no se ejecuta el archivo .ino.'
+      : 'Candidato de 3000 RPM basado en la simulación de CoppeliaSim: 16 sensores, corrección diferencial y rampas de aceleración. Todavía requiere validación física.';
+    for (const key of advancedOnlyControls) {
+      const disabled = controlMode === 'reference1000';
+      for (const kind of ['range', 'min', 'value', 'max']) {
+        $(`${kind}-${key}`).disabled = disabled;
+      }
+      $(`range-${key}`).closest('.parameter').dataset.disabled = String(disabled);
+    }
+  }
+
+  function changeMode(nextMode) {
+    if (nextMode !== 'advanced3000' && nextMode !== 'reference1000') return;
+    if (nextMode === controlMode) return;
+    if (nextMode === 'reference1000') {
+      advancedMotorRpm = params.motorRpm;
+      params.motorRpm = 1000;
+    } else {
+      params.motorRpm = advancedMotorRpm;
+    }
+    controlMode = nextMode;
+    $('presetWarning').hidden = true;
+    document.querySelectorAll('.preset').forEach((b) => b.setAttribute('aria-pressed', 'false'));
+    if (params.motorRpm > bounds.motorRpm.max) bounds.motorRpm.max = params.motorRpm;
+    syncControl('motorRpm');
+    syncModeUi();
+    saveSettings();
+    running = false;
+    resetState();
+  }
+
+  function applyPreset(name) {
+    const selected = presets[name];
+    if (!selected) return;
+    if (name === 'firmware3000') {
+      controlMode = 'advanced3000';
+      advancedMotorRpm = 3000;
+    }
+    for (const [key, def] of definitions) {
+      const desired = selected[key] ?? def.value;
+      if (desired > bounds[key].max) bounds[key].max = desired;
+      if (desired < bounds[key].min) bounds[key].min = desired;
+      params[key] = desired;
+      syncControl(key);
+    }
+    if (controlMode === 'reference1000') {
+      params.motorRpm = 1000;
+      syncControl('motorRpm');
+    }
+    document.querySelectorAll('.preset').forEach((button) => {
+      button.setAttribute('aria-pressed', String(button.dataset.preset === name));
+    });
+    syncModeUi();
+    $('presetWarning').hidden = name !== 'firmware3000';
+    saveSettings();
+    running = false;
+    resetState();
+  }
+
+  function init() {
+    initializeTrack();
+    loadSettings();
+    buildControls();
+    syncModeUi();
+    $('controllerMode').addEventListener('change', (event) => changeMode(event.target.value));
+    document.querySelectorAll('.preset').forEach((button) => {
+      button.addEventListener('click', () => applyPreset(button.dataset.preset));
+    });
+    $('playButton').addEventListener('click', () => {
+      if (failureMessage) resetState();
+      running = !running;
+      lastFrameMs = 0;
+      updateUi();
+      render();
+    });
+    $('resetButton').addEventListener('click', () => {
+      running = false;
+      resetState();
+    });
+    $('viewButton').addEventListener('click', () => {
+      followView = !followView;
+      $('viewButton').setAttribute('aria-pressed', String(followView));
+      $('viewButton').textContent = followView ? 'Vista completa' : 'Seguir robot';
+      render();
+    });
+    $('defaultsButton').addEventListener('click', () => {
+      for (const [key, def] of definitions) {
+        bounds[key] = { min: def.min, max: def.max };
+        params[key] = def.value;
+        syncControl(key);
+      }
+      if (controlMode === 'reference1000') {
+        params.motorRpm = 1000;
+        syncControl('motorRpm');
+      }
+      document.querySelectorAll('.preset').forEach((b) => b.setAttribute('aria-pressed', 'false'));
+      $('presetWarning').hidden = true;
+      saveSettings();
+      running = false;
+      resetState();
+    });
+    new ResizeObserver(resizeCanvas).observe(canvas);
+    resetState();
+    requestAnimationFrame(loop);
+
+    // Solo para pruebas automatizadas locales; no altera la interfaz del usuario.
+    window.__SIM_QA__ = {
+      get state() { return state; },
+      get params() { return params; },
+      get controlMode() { return controlMode; },
+      get trackLengthMm() { return trackLengthMm; },
+      senseLine, resetState, step: updatePhysics, updateLap, changeMode,
+      setParam(key, value) {
+        if (!definitions.has(key)) throw new Error('Parámetro desconocido');
+        params[key] = value;
+        if (value > bounds[key].max) bounds[key].max = value;
+        syncControl(key);
+      },
+    };
+  }
+
+  try { init(); }
+  catch (error) {
+    console.error(error);
+    $('canvasOverlay').textContent =
+      'No se pudo iniciar la simulación en este navegador. Usa una versión actual de Chrome, Edge o Safari.';
+    $('canvasOverlay').hidden = false;
+    $('statusBadge').textContent = 'Error al iniciar';
+    $('statusBadge').dataset.tone = 'danger';
+  }
+})();
+
+</script>
+</body>
+</html>
