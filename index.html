@@ -74,27 +74,27 @@ h3{font-size:1.02rem;margin-bottom:0}
           <p class="section-kicker">PISTA IMPRESA · 50 HOJAS A4</p>
           <h2>Vista en tiempo real</h2>
         </div>
-        <span class="status-badge" id="statusBadge" aria-live="polite">Lista para iniciar</span>
+        <span class="status-badge" id="statusBadge" aria-live="polite">Calibrando al energizar</span>
       </div>
 
       <div class="track-frame">
         <canvas id="trackCanvas" role="img" aria-label="Pista de 180 por 120 centímetros con el robot seguidor de línea"></canvas>
-        <div class="canvas-overlay" id="canvasOverlay">Pulsa Iniciar para probar el robot</div>
+        <div class="canvas-overlay" id="canvasOverlay">Calibración automática al energizar</div>
       </div>
 
       <div class="controller-choice">
         <label for="controllerMode">Control que se simula</label>
         <select id="controllerMode">
-          <option value="advanced3000">Candidato 3000 RPM</option>
+          <option value="advanced3000">V4 robusta · motor 3000 RPM</option>
           <option value="reference1000">Referencia 1000 RPM</option>
         </select>
       </div>
-      <p class="mode-explanation" id="modeExplanation">Control de 3000 RPM con lectura de 16 sensores, corrección diferencial y aceleración progresiva.</p>
+      <p class="mode-explanation" id="modeExplanation">Control v4 robusto para motor nominal de 3000 RPM: calibración al energizar, 16 sensores, corrección diferencial y zona muerta PWM.</p>
 
       <div class="playback-row">
         <div class="button-group">
-          <button class="button button-primary" id="playButton" type="button">Iniciar</button>
-          <button class="button button-secondary" id="resetButton" type="button">Reiniciar</button>
+          <button class="button button-primary" id="playButton" type="button" disabled>BOOT · Iniciar</button>
+          <button class="button button-secondary" id="resetButton" type="button">Reenergizar</button>
           <button class="button button-secondary" id="viewButton" type="button" aria-pressed="false">Seguir robot</button>
         </div>
         <p class="simulation-note">Tiempo simulado · la vista no cambia la física</p>
@@ -130,12 +130,13 @@ h3{font-size:1.02rem;margin-bottom:0}
       <p class="control-intro">Mueve cada control como un potenciómetro. El campo <strong>Máximo</strong> cambia el límite del deslizador; también puedes escribir el valor exacto.</p>
       <div class="presets" aria-label="Escenarios rápidos">
         <button class="preset" data-preset="base" type="button">Base</button>
+        <button class="preset" data-preset="v3Deadband" type="button">Diagnóstico v3</button>
         <button class="preset" data-preset="firmware3000" type="button">Firmware 3000 sin ajuste</button>
         <button class="preset" data-preset="slippery" type="button">Poco agarre</button>
         <button class="preset" data-preset="lift" type="button">Nariz arriba</button>
         <button class="preset" data-preset="bias" type="button">Tira a un lado</button>
       </div>
-      <p class="preset-warning" id="presetWarning" role="status" hidden>Este escenario conserva las órdenes del firmware de 3000 RPM sin ajuste: 1950 RPM en recta, 550 en curva, Kp 420 y Kd 1,2. En el modelo web puede perder la línea; no equivale a validar el código físico.</p>
+      <p class="preset-warning" id="presetWarning" role="status" hidden></p>
       <div id="parameterGroups"></div>
     </section>
 
@@ -144,7 +145,8 @@ h3{font-size:1.02rem;margin-bottom:0}
       <h2 id="assumptionsTitle">Una prueba aproximada, no una predicción garantizada</h2>
       <p>La línea y sus medidas son las del archivo vectorial usado para imprimir la pista: 180 × 120 cm y trazo de 18 mm. El robot parte de radio de rueda 10 mm, separación de 120 mm y regleta curva de 16 sensores adelantada entre 160 y 175 mm.</p>
       <p>El derrape, la respuesta del motor y la elevación de la nariz se calculan con un modelo reducido en 2D. Aún no se han medido el coeficiente de fricción, la inercia, el centro de masa ni las RPM bajo carga del robot físico. Los valores superiores a la velocidad estimada con 5 V y carga son escenarios hipotéticos, no velocidad confirmada.</p>
-      <p>El modo «Referencia exitosa» reproduce la lógica del firmware físico protegido de 1000 RPM: umbrales de 16 sensores, centroide, PID, velocidad PWM variable, pivote y búsqueda. No ejecuta código Arduino dentro del navegador ni simula su calibración de diez segundos; las lecturas se consideran ya calibradas. El archivo original no se modifica.</p>
+      <p>La v4 distingue el piso PWM que ordena el código de la zona muerta física del motor. Al energizar ejecuta un barrido automático; BOOT solo inicia, pausa o reanuda. Una pérdida prolongada detiene el robot y conserva la calibración. «Reenergizar» es la única acción que la repite.</p>
+      <p>El modo «Referencia exitosa» reproduce la lógica del firmware físico protegido de 1000 RPM: umbrales de 16 sensores, centroide, PID, velocidad PWM variable, pivote y búsqueda. No ejecuta código Arduino dentro del navegador. El archivo original no se modifica.</p>
     </section>
   </main>
 
@@ -172,34 +174,42 @@ h3{font-size:1.02rem;margin-bottom:0}
   const TRACK_H = 1200;
   const STEP = 0.002;
   const GRAVITY = 9.81;
-  const STORAGE_KEY = 'seguidor-linea-web-v2';
+  // Clave nueva: evita que ajustes antiguos (850/220, Kp 320) oculten el
+  // perfil v4 robusto cuando el usuario abre la actualización.
+  const STORAGE_KEY = 'seguidor-linea-web-v4-robusto-070';
   const numberFormat = new Intl.NumberFormat('es-CO', { maximumFractionDigits: 2 });
 
   const groups = [
     {
-      name: 'Velocidad y controlador', open: true,
+      name: 'Código del controlador', open: true,
       items: [
         { key: 'motorRpm', label: 'Motor nominal', unit: 'RPM', value: 3000, min: 100, max: 5000, step: 50, hardMax: 20000, help: 'RPM sin carga a 6 V; no son RPM medidas en la pista.' },
         { key: 'supplyV', label: 'Voltaje en motores', unit: 'V', value: 5, min: 0.5, max: 8, step: 0.1, hardMax: 24, help: 'Valor de VM del TB6612FNG, no tensión de la batería.' },
         { key: 'loadFactor', label: 'Factor bajo carga', unit: '×', value: 0.78, min: 0.1, max: 1, step: 0.01, hardMax: 2, help: 'Hipótesis de pérdidas por carga, batería y puente H.' },
-        { key: 'straightRpm', label: 'Orden en recta', unit: 'RPM', value: 1300, min: 0, max: 3000, step: 25, hardMax: 20000, help: 'RPM ordenadas a las ruedas en recta; se limitan al motor cargado.' },
-        { key: 'curveRpm', label: 'Orden en curva', unit: 'RPM', value: 250, min: 0, max: 1500, step: 25, hardMax: 20000, help: 'Velocidad base antes del desacople entre ruedas.' },
-        { key: 'maxYawRate', label: 'Velocidad máxima de giro', unit: 'rad/s', value: 18, min: 0.5, max: 25, step: 0.5, hardMax: 100, help: 'Tope de la orden angular; más giro exige mayor diferencia entre motores.' },
-        { key: 'yawSlewRate', label: 'Cambio máximo de giro', unit: 'rad/s²', value: 100, min: 1, max: 150, step: 5, hardMax: 2000, help: 'Rapidez con que cambia la orden de giro; un valor alto puede causar oscilaciones.' },
-        { key: 'kp', label: 'Ganancia proporcional', unit: 'rad/s/m', value: 150, min: 0, max: 1000, step: 5, hardMax: 10000, help: 'Corrige según la distancia lateral de la línea.' },
-        { key: 'kd', label: 'Ganancia derivativa', unit: 'rad/m', value: 7, min: 0, max: 12, step: 0.1, hardMax: 100, help: 'Amortigua cambios rápidos de posición; demasiado puede amplificar ruido.' },
+        { key: 'straightRpm', label: 'Orden en recta', unit: 'RPM', value: 334, min: 0, max: 3000, step: 1, hardMax: 20000, help: 'Perfil v4 robusto trasladado desde la referencia física; no es la velocidad nominal del motor.' },
+        { key: 'curveRpm', label: 'Orden en curva', unit: 'RPM', value: 180, min: 0, max: 1500, step: 1, hardMax: 20000, help: 'Velocidad base v4 robusta antes del desacople entre ruedas.' },
+        { key: 'startRpm', label: 'Orden inicial', unit: 'RPM', value: 300, min: 0, max: 1500, step: 1, hardMax: 20000, help: 'Meseta de 800 ms al iniciar; limita el salto de aceleración al energizar la marcha.' },
+        { key: 'maxYawRate', label: 'Velocidad máxima de giro', unit: 'rad/s', value: 20, min: 0.5, max: 30, step: 0.5, hardMax: 100, help: 'Tope de la orden angular; más giro exige mayor diferencia entre motores.' },
+        { key: 'pivotMinYaw', label: 'Giro mínimo urgente', unit: 'rad/s', value: 3.15, min: 1, max: 20, step: 0.05, hardMax: 100, help: 'Valor v4 robusto durante el pivote enclavado cuando un sensor extremo conserva la línea.' },
+        { key: 'yawSlewRate', label: 'Cambio máximo de giro', unit: 'rad/s²', value: 140, min: 1, max: 500, step: 5, hardMax: 2000, help: 'Rampa normal v4; en el borde la corrección urgente usa 350 rad/s².' },
+        { key: 'kp', label: 'Ganancia proporcional', unit: 'rad/s/m', value: 122.5, min: 0, max: 1000, step: 2.5, hardMax: 10000, help: 'Ganancia v4 robusta: conserva autoridad sin repetir la oscilación del perfil agresivo.' },
+        { key: 'kd', label: 'Ganancia derivativa', unit: 'rad/m', value: 1.54, min: 0, max: 12, step: 0.01, hardMax: 100, help: 'Amortigua cambios rápidos de posición; valor v4 robusto obtenido por equivalencia dimensional.' },
+        { key: 'pwmFloor', label: 'Piso PWM del firmware', unit: '/255', value: 70, min: 0, max: 160, step: 1, hardMax: 255, help: 'PWM mínimo que el firmware suma a una orden de rueda distinta de cero.' },
+        { key: 'calibrationPwm', label: 'PWM inicial de calibración', unit: '/255', value: 70, min: 0, max: 160, step: 1, hardMax: 255, help: 'La v4 inicia aquí y aumenta por pasos cuando no detecta movimiento.' },
+        { key: 'calibrationPwmMax', label: 'PWM máximo de calibración', unit: '/255', value: 110, min: 0, max: 200, step: 1, hardMax: 255, help: 'Límite de la búsqueda automática de fuerza durante el encendido.' },
       ],
     },
     {
-      name: 'Agarre, motores y cabeceo', open: false,
+      name: 'Parámetros físicos: agarre, motores y cabeceo', open: false,
       items: [
         { key: 'mu', label: 'Coeficiente de agarre', unit: 'μ', value: 0.8, min: 0.05, max: 1.5, step: 0.05, hardMax: 5, help: 'Menos agarre limita fuerza lateral y longitudinal; facilita trompos.' },
         { key: 'mass', label: 'Masa total', unit: 'kg', value: 0.38, min: 0.1, max: 1, step: 0.02, hardMax: 10, help: 'Estimación inicial; pesa el robot para reemplazarla.' },
         { key: 'yawInertia', label: 'Inercia de giro', unit: 'g·m²', value: 2.5, min: 0.2, max: 10, step: 0.1, hardMax: 100, help: 'Valor estimado: cuanto mayor, más cuesta girar o corregir.' },
         { key: 'motorTau', label: 'Respuesta de motores', unit: 'ms', value: 70, min: 5, max: 300, step: 5, hardMax: 3000, help: 'Retardo mecánico aproximado; no hay curva de par medida.' },
         { key: 'motorBias', label: 'Diferencia entre motores', unit: '%', value: 0, min: -30, max: 30, step: 1, hardMax: 100, hardMin: -100, help: 'Negativo: rueda izquierda más fuerte, tiende a girar a la derecha.' },
-        { key: 'accelLimit', label: 'Aceleración ordenada', unit: 'm/s²', value: 3.2, min: 0.1, max: 8, step: 0.1, hardMax: 100, help: 'Rampa del controlador; más alta puede levantar la nariz.' },
-        { key: 'brakeLimit', label: 'Frenado ordenado', unit: 'm/s²', value: 8, min: 0.1, max: 15, step: 0.2, hardMax: 100, help: 'Reducción de velocidad al detectar una curva.' },
+        { key: 'pwmDeadband', label: 'Zona muerta física', unit: 'PWM', value: 70, min: 0, max: 160, step: 1, hardMax: 254, help: 'Por debajo o igual a este PWM el motor no vence fricción y permanece detenido.' },
+        { key: 'accelLimit', label: 'Aceleración ordenada', unit: 'm/s²', value: 2, min: 0.1, max: 8, step: 0.1, hardMax: 100, help: 'Límite v4 del perfil longitudinal; más alto puede levantar la nariz.' },
+        { key: 'brakeLimit', label: 'Frenado ordenado', unit: 'm/s²', value: 10, min: 0.1, max: 15, step: 0.2, hardMax: 100, help: 'Límite v4 al reducir velocidad antes de una curva.' },
         { key: 'lateralLimit', label: 'Límite lateral del control', unit: 'm/s²', value: 4, min: 0.1, max: 12, step: 0.1, hardMax: 100, help: 'Reduce la velocidad solicitada cuando v × giro es alto.' },
         { key: 'pitchGain', label: 'Sensibilidad de nariz', unit: '°/(m/s²)', value: 0.65, min: 0, max: 3, step: 0.05, hardMax: 20, help: 'Modelo de esfuerzo: subida frontal por aceleración, no medida real.' },
         { key: 'pitchMax', label: 'Elevación máxima', unit: '°', value: 5, min: 0, max: 12, step: 0.25, hardMax: 45, help: 'Tope de la elevación visual y óptica de la regleta.' },
@@ -216,7 +226,7 @@ h3{font-size:1.02rem;margin-bottom:0}
         { key: 'sensorHeight', label: 'Altura inicial', unit: 'mm', value: 3, min: 0.5, max: 15, step: 0.25, hardMax: 100, help: 'Aproximadamente 3 mm al piso en la referencia.' },
         { key: 'heightFalloff', label: 'Tolerancia óptica', unit: 'mm', value: 7, min: 1, max: 20, step: 0.5, hardMax: 100, help: 'Al subir la nariz, cae la intensidad de la línea detectada.' },
         { key: 'sensorNoise', label: 'Ruido de lectura', unit: '%', value: 1, min: 0, max: 20, step: 0.5, hardMax: 100, help: 'Variación aleatoria de reflectancia en cada lectura.' },
-        { key: 'controlPeriod', label: 'Periodo de lectura', unit: 'ms', value: 4, min: 2, max: 20, step: 1, hardMax: 100, help: 'Firmware físico propuesto: 4 ms. Más lento recorre más distancia por muestra.' },
+        { key: 'controlPeriod', label: 'Periodo de lectura', unit: 'ms', value: 8, min: 2, max: 20, step: 1, hardMax: 100, help: 'Periodo v4: 8 ms. Más lento recorre más distancia por muestra.' },
       ],
     },
   ];
@@ -226,15 +236,21 @@ h3{font-size:1.02rem;margin-bottom:0}
   const bounds = Object.fromEntries([...definitions].map(([key, def]) => [key, { min: def.min, max: def.max }]));
   const presets = {
     base: {},
+    v3Deadband: { motorRpm: 3000, straightRpm: 1300, curveRpm: 250,
+      kp: 150, kd: 7, controlPeriod: 4, pwmFloor: 46,
+      calibrationPwm: 55, calibrationPwmMax: 55 },
     firmware3000: { motorRpm: 3000, straightRpm: 1950, curveRpm: 550,
-      kp: 420, kd: 1.2 },
+      kp: 420, kd: 1.2, pwmFloor: 46, calibrationPwm: 55,
+      calibrationPwmMax: 55 },
     slippery: { mu: 0.23, lateralLimit: 8, straightRpm: 1950 },
     lift: { pitchGain: 2.2, pitchMax: 9, accelLimit: 6.5, sensorHeight: 3 },
     bias: { motorBias: -18, straightRpm: 1950, mu: 0.6 },
   };
   const advancedOnlyControls = new Set([
-    'motorRpm', 'straightRpm', 'curveRpm', 'maxYawRate',
-    'yawSlewRate', 'kp', 'kd', 'lateralLimit',
+    'motorRpm', 'straightRpm', 'curveRpm', 'startRpm', 'maxYawRate',
+    'pivotMinYaw',
+    'yawSlewRate', 'kp', 'kd', 'lateralLimit', 'pwmFloor',
+    'calibrationPwm', 'calibrationPwmMax',
   ]);
   let controlMode = 'advanced3000';
   let advancedMotorRpm = 3000;
@@ -262,6 +278,25 @@ h3{font-size:1.02rem;margin-bottom:0}
   function loadedRpm() {
     const nominalRpm = controlMode === 'reference1000' ? 1000 : params.motorRpm;
     return Math.max(0, nominalRpm * params.supplyV / 6 * params.loadFactor);
+  }
+  function pwmToMotorRpm(pwm) {
+    const magnitude = clamp(Math.abs(pwm), 0, 255);
+    const deadband = clamp(params.pwmDeadband, 0, 254);
+    if (magnitude <= deadband) return 0;
+    return Math.sign(pwm) * loadedRpm() *
+      (magnitude - deadband) / Math.max(1, 255 - deadband);
+  }
+  function rpmCommandToPwm(rpm) {
+    const magnitude = Math.abs(rpm);
+    // Igual que RPM_MINIMA_ORDEN del firmware: una orden demasiado pequeña
+    // no se convierte artificialmente en el piso PWM.
+    if (magnitude < 65) return 0;
+    const floor = clamp(params.pwmFloor, 0, 254);
+    const fraction = clamp(magnitude / Math.max(1, loadedRpm()), 0, 1);
+    return Math.sign(rpm) * (floor + fraction * (255 - floor));
+  }
+  function rpmCommandToMotorRpm(rpm) {
+    return pwmToMotorRpm(rpmCommandToPwm(rpm));
   }
   function randomSigned() {
     rng ^= rng << 13; rng ^= rng >>> 17; rng ^= rng << 5;
@@ -292,10 +327,15 @@ h3{font-size:1.02rem;margin-bottom:0}
   }
 
   function blacknessAt(xMm, yMm) {
-    const x = Math.round(xMm);
-    const y = Math.round(yMm);
-    if (x < 0 || y < 0 || x >= TRACK_W || y >= TRACK_H) return 0;
-    return 1 - lineMask[(y * TRACK_W + x) * 4] / 255;
+    if (xMm < 0 || yMm < 0 || xMm >= TRACK_W - 1 || yMm >= TRACK_H - 1) return 0;
+    const x0 = Math.floor(xMm);
+    const y0 = Math.floor(yMm);
+    const fx = xMm - x0;
+    const fy = yMm - y0;
+    const sample = (x, y) => 1 - lineMask[(y * TRACK_W + x) * 4] / 255;
+    const top = sample(x0, y0) * (1 - fx) + sample(x0 + 1, y0) * fx;
+    const bottom = sample(x0, y0 + 1) * (1 - fx) + sample(x0 + 1, y0 + 1) * fx;
+    return top * (1 - fy) + bottom * fy;
   }
 
   function sensorLeadMm(index) {
@@ -320,32 +360,67 @@ h3{font-size:1.02rem;margin-bottom:0}
       leadCenter * Math.sin(state.pitch);
     const excessHeight = Math.max(0, sensorHeightMm - 3);
     const opticalGain = Math.exp(-0.5 * Math.pow(excessHeight / params.heightFalloff, 2));
-    let peak = 0;
-    let sum = 0;
-    let weighted = 0;
     for (let i = 0; i < 16; i++) {
       const lateralMm = (i - 7.5) * params.sensorPitch;
       const p = pointOnRobot(sensorLeadMm(i), lateralMm);
       const c = Math.cos(state.heading);
       const s = Math.sin(state.heading);
-      const spread = 1.5;
-      const optical = (
-        blacknessAt(p.x, p.y) +
-        blacknessAt(p.x - s * spread, p.y + c * spread) +
-        blacknessAt(p.x + s * spread, p.y - c * spread)
-      ) / 3;
+      // Huella óptica analógica compacta. El sensor real no cambia de 0 a
+      // 1000 en un solo píxel: integra reflectancia sobre una pequeña zona.
+      // Esta convolución suaviza la transición sin ensanchar artificialmente
+      // la línea ni inventar detección fuera de la huella de 3 mm.
+      let optical = 0;
+      let opticalWeight = 0;
+      for (let lateralOffset = -3; lateralOffset <= 3; lateralOffset += 1) {
+        const lateralWeight = Math.exp(-0.5 * Math.pow(lateralOffset / 1.6, 2));
+        for (const [forwardOffset, forwardWeight] of [[-1, 0.25], [0, 0.5], [1, 0.25]]) {
+          const weight = lateralWeight * forwardWeight;
+          optical += weight * blacknessAt(
+            p.x + c * forwardOffset - s * lateralOffset,
+            p.y + s * forwardOffset + c * lateralOffset);
+          opticalWeight += weight;
+        }
+      }
+      optical /= opticalWeight;
       const intensity = clamp(optical * opticalGain +
         randomSigned() * params.sensorNoise / 100, 0, 1) * 1000;
       strengths.push(intensity);
-      peak = Math.max(peak, intensity);
-      const force = Math.max(0, intensity - 70);
-      weighted += force * lateralMm;
-      sum += force;
     }
-    const valid = peak >= 230 && sum >= 420;
+
+    // Igual que el firmware v4: se conserva solo el grupo contiguo con mayor
+    // suma. Un reflejo aislado no puede arrastrar el centroide hacia el centro.
+    const forces = strengths.map((value) => Math.max(0, value - 70));
+    let bestStart = 0;
+    let bestLength = 0;
+    let bestSum = 0;
+    for (let i = 0; i < forces.length;) {
+      if (forces[i] <= 0) { i += 1; continue; }
+      const start = i;
+      let groupSum = 0;
+      while (i < forces.length && forces[i] > 0) {
+        groupSum += forces[i];
+        i += 1;
+      }
+      if (groupSum > bestSum) {
+        bestStart = start;
+        bestLength = i - start;
+        bestSum = groupSum;
+      }
+    }
+    let peak = 0;
+    let weighted = 0;
+    let extremeActive = false;
+    for (let i = bestStart; i < bestStart + bestLength; i++) {
+      peak = Math.max(peak, strengths[i]);
+      weighted += forces[i] * ((i - 7.5) * params.sensorPitch);
+      if (i <= 1 || i >= 14) extremeActive = true;
+    }
+    const valid = bestLength >= 1 && bestLength <= 7 &&
+      peak >= 230 && bestSum >= 420;
     return {
-      valid, positionM: valid ? weighted / sum / 1000 : 0,
-      peak, sum, strengths, sensorHeightMm,
+      valid, positionM: valid ? weighted / bestSum / 1000 : 0,
+      peak, sum: bestSum, strengths, sensorHeightMm,
+      activeGroup: bestLength, groupStart: bestStart, extremeActive,
     };
   }
 
@@ -364,17 +439,138 @@ h3{font-size:1.02rem;margin-bottom:0}
 
   // Traducción de la lógica del firmware EXITO_v1.ino a órdenes de rueda.
   // Las lecturas ya normalizadas vienen del modelo óptico, no del ADC real.
-  function referencePwmToRpm(pwm) {
-    const magnitude = Math.abs(Math.trunc(pwm));
-    if (magnitude < 18) return 0;
-    return Math.sign(pwm) * Math.max(52, Math.min(255, magnitude)) / 255 * loadedRpm();
-  }
+  function referencePwmToRpm(pwm) { return pwmToMotorRpm(pwm); }
 
   function setReferenceWheels(leftPwm, rightPwm) {
     state.commandL = referencePwmToRpm(leftPwm);
     state.commandR = referencePwmToRpm(rightPwm);
     state.referencePwmL = leftPwm;
     state.referencePwmR = rightPwm;
+  }
+
+  function stopDrive() {
+    state.commandL = 0;
+    state.commandR = 0;
+    state.rawPwmL = 0;
+    state.rawPwmR = 0;
+  }
+
+  function enterReady() {
+    stopDrive();
+    state.motorL = 0;
+    state.motorR = 0;
+    state.vx = 0;
+    state.vy = 0;
+    state.omega = 0;
+    state.phase = 'ready';
+    running = false;
+    failureMessage = '';
+    state.time = 0;
+    state.lapStartedAt = 0;
+    state.progressMm = 0;
+    state.trail = [];
+  }
+
+  function enterFault(message) {
+    stopDrive();
+    state.motorL = 0;
+    state.motorR = 0;
+    state.phase = 'fault';
+    running = false;
+    failureMessage = message;
+  }
+
+  function pauseRobot(message = '') {
+    stopDrive();
+    state.motorL = 0;
+    state.motorR = 0;
+    state.vx = 0;
+    state.vy = 0;
+    state.omega = 0;
+    state.phase = 'paused';
+    running = false;
+    failureMessage = message;
+  }
+
+  function updateCalibrationController(dt) {
+    const reading = senseLine();
+    state.reading = reading;
+    state.calibrationElapsed += dt;
+    state.calibrationNoProgress += dt;
+    state.calibrationStageElapsed += dt;
+    for (let i = 0; i < reading.strengths.length; i++) {
+      if (reading.strengths[i] >= 230) state.calibrationMask |= (1 << i);
+    }
+
+    if (!reading.valid) {
+      state.calibrationLossTime += dt;
+      state.rawPwmL = 0;
+      state.rawPwmR = 0;
+      if (state.calibrationLossTime >= 0.140) {
+        enterFault('Línea perdida durante la calibración durante 140 ms; reenergiza para reintentar.');
+      }
+      return;
+    }
+    state.calibrationLossTime = 0;
+
+    if (Math.abs(reading.positionM) >= 0.042) {
+      enterFault('La línea alcanzó el borde de seguridad durante la calibración.');
+      return;
+    }
+    if (state.calibrationElapsed > 12) {
+      enterFault('Calibración agotada: corta y vuelve a energizar para reintentar.');
+      return;
+    }
+
+    const position = reading.valid ? reading.positionM : state.calibrationLastPosition;
+    if (reading.valid &&
+        Math.abs(position - state.calibrationProgressPosition) >= 0.0015) {
+      state.calibrationProgressPosition = position;
+      state.calibrationLastPosition = position;
+      state.calibrationNoProgress = 0;
+      state.calibrationLearnedPwm = Math.max(state.calibrationLearnedPwm,
+        Math.min(255, state.calibrationPwmWorking + 5));
+    }
+
+    if (state.calibrationNoProgress >= 0.16) {
+      if (state.calibrationPwmWorking < params.calibrationPwmMax) {
+        state.calibrationPwmWorking = Math.min(params.calibrationPwmMax,
+          state.calibrationPwmWorking + 4);
+        state.calibrationNoProgress = 0;
+      } else if (state.calibrationStageElapsed > 0.75) {
+        enterFault(`Calibración sin movimiento: PWM ${Math.round(state.calibrationPwmWorking)} no supera la zona muerta física ${Math.round(params.pwmDeadband)}.`);
+        return;
+      }
+    }
+
+    const targets = [-0.035, 0.035, 0];
+    const target = targets[state.calibrationStage];
+    const error = target - position;
+    if (reading.valid && Math.abs(error) <= 0.0035) {
+      state.calibrationStage += 1;
+      state.calibrationStageElapsed = 0;
+      state.calibrationNoProgress = 0;
+      state.calibrationProgressPosition = position;
+      if (state.calibrationStage >= targets.length) {
+        const covered = state.calibrationMask.toString(2).replace(/0/g, '').length;
+        if (covered < 14) {
+          enterFault(`Calibración incompleta: solo ${covered} de 16 sensores observaron la línea.`);
+        } else {
+          params.pwmFloor = Math.max(params.pwmFloor,
+            Math.min(254, state.calibrationLearnedPwm));
+          syncControl('pwmFloor');
+          enterReady();
+        }
+        return;
+      }
+      return;
+    }
+
+    // Al girar en sitio, un giro horario desplaza la línea hacia el lado
+    // negativo de la regleta; por eso el signo es el opuesto al error.
+    const direction = error === 0 ? 0 : -Math.sign(error);
+    state.rawPwmL = direction * state.calibrationPwmWorking;
+    state.rawPwmR = -direction * state.calibrationPwmWorking;
   }
 
   function updateReferenceController(dt) {
@@ -475,6 +671,10 @@ h3{font-size:1.02rem;margin-bottom:0}
       if (state.lossTime > 0) {
         state.firstReading = true;
         state.severity = 1;
+        // Igual que seguirLinea() del firmware: una recuperación comienza
+        // sin conservar el enclavamiento ni el frenado del episodio anterior.
+        state.urgentPivotDirection = 0;
+        state.postPivotUntil = 0;
       }
       state.lossTime = 0;
       const posAlpha = dt / (0.008 + dt);
@@ -493,6 +693,26 @@ h3{font-size:1.02rem;margin-bottom:0}
 
       targetYaw = clamp(params.kp * position + params.kd * state.dFilter,
         -params.maxYawRate, params.maxYawRate);
+      const closedLoopEnabled = Math.abs(params.kp) > 1e-9 ||
+        Math.abs(params.kd) > 1e-9;
+      let postPivotBraking = state.time < state.postPivotUntil;
+      if (closedLoopEnabled && state.urgentPivotDirection === 0 &&
+          !postPivotBraking &&
+          Math.abs(reading.positionM) >= 0.024 && reading.extremeActive) {
+        state.urgentPivotDirection = reading.positionM < 0 ? -1 : 1;
+      } else if (state.urgentPivotDirection !== 0 &&
+                 (!reading.extremeActive ||
+                  Math.abs(reading.positionM) < 0.024)) {
+        state.urgentPivotDirection = 0;
+        state.postPivotUntil = state.time + 0.160;
+        postPivotBraking = true;
+      }
+      const urgentPivot = state.urgentPivotDirection !== 0;
+      if (urgentPivot) {
+        targetYaw = state.urgentPivotDirection * clamp(
+          Math.max(Math.abs(targetYaw), params.pivotMinYaw),
+          params.pivotMinYaw, params.maxYawRate);
+      }
       const halfSpan = 7.5 * params.sensorPitch / 1000;
       const instantSeverity = clamp(Math.max(
         Math.abs(reading.positionM) / halfSpan,
@@ -504,28 +724,35 @@ h3{font-size:1.02rem;margin-bottom:0}
         (rpmToMps(straightRpm) - rpmToMps(curveRpm));
       targetSpeed = Math.min(targetSpeed,
         params.lateralLimit / (Math.abs(targetYaw) + 0.30));
-      if (state.time < 0.650) targetSpeed = Math.min(targetSpeed,
-        rpmToMps(Math.min(1000, maxRpm)));
+      if (urgentPivot || postPivotBraking) targetSpeed = Math.min(targetSpeed,
+        rpmToMps(Math.min(80, maxRpm)));
+      if (state.time < 0.800) targetSpeed = Math.min(targetSpeed,
+        rpmToMps(Math.min(params.startRpm, maxRpm)));
       targetSpeed = clamp(targetSpeed,
-        rpmToMps(Math.min(250, maxRpm)), rpmToMps(straightRpm));
+        0, rpmToMps(straightRpm));
     } else {
       state.lossTime += dt;
       state.dFilter = 0;
       if (state.lossTime < 0.030) {
         targetSpeed = state.speedCommand;
         targetYaw = state.yawCommand;
-      } else if (state.lossTime < 1.1 && state.lastDirection !== 0) {
-        targetSpeed = rpmToMps(Math.min(250, maxRpm));
+      } else if (state.lossTime < 1.1) {
+        targetSpeed = state.lastDirection === 0
+          ? 0 : rpmToMps(Math.min(220, maxRpm));
         targetYaw = state.lastDirection * Math.min(6, params.maxYawRate);
       } else {
-        targetSpeed = 0;
-        targetYaw = 0;
+        pauseRobot('Línea perdida: recoloca el robot sobre la pista y pulsa BOOT para reanudar sin recalibrar.');
+        return;
       }
     }
 
     updateLongitudinal(targetSpeed, dt);
+    const urgentSlew = (state.urgentPivotDirection !== 0 ||
+      state.time < state.postPivotUntil ||
+      Math.abs(state.reading?.positionM || 0) >= 0.020)
+      ? Math.max(params.yawSlewRate, 350) : params.yawSlewRate;
     state.yawCommand = moveToward(state.yawCommand, targetYaw,
-      params.yawSlewRate * dt);
+      urgentSlew * dt);
     const wheelBaseM = params.wheelBase / 1000;
     let left = mpsToRpm(state.speedCommand + 0.5 * wheelBaseM * state.yawCommand);
     let right = mpsToRpm(state.speedCommand - 0.5 * wheelBaseM * state.yawCommand);
@@ -540,11 +767,41 @@ h3{font-size:1.02rem;margin-bottom:0}
   }
 
   function updatePhysics(dt) {
+    state.powerTime += dt;
+    state.controlElapsed += dt;
+    const controlDt = Math.max(0.002, params.controlPeriod / 1000);
+    if (state.phase === 'calibrating') {
+      updateCalibrationController(dt);
+    } else if (state.phase === 'running' &&
+               state.controlElapsed + 1e-9 >= controlDt) {
+      const elapsed = state.controlElapsed;
+      state.controlElapsed = 0;
+      updateController(elapsed);
+    }
+
     const maxMotor = loadedRpm();
     const response = dt / (params.motorTau / 1000 + dt);
     const bias = params.motorBias / 100;
-    const leftTarget = clamp(state.commandL * (1 - bias), -maxMotor, maxMotor);
-    const rightTarget = clamp(state.commandR * (1 + bias), -maxMotor, maxMotor);
+    let leftRequest;
+    let rightRequest;
+    if (state.phase === 'calibrating') {
+      leftRequest = pwmToMotorRpm(state.rawPwmL);
+      rightRequest = pwmToMotorRpm(state.rawPwmR);
+    } else if (controlMode === 'reference1000') {
+      leftRequest = state.commandL;
+      rightRequest = state.commandR;
+    } else {
+      leftRequest = rpmCommandToMotorRpm(state.commandL);
+      rightRequest = rpmCommandToMotorRpm(state.commandR);
+    }
+    state.appliedPwmL = state.phase === 'calibrating'
+      ? state.rawPwmL : (controlMode === 'reference1000'
+        ? state.referencePwmL : rpmCommandToPwm(state.commandL));
+    state.appliedPwmR = state.phase === 'calibrating'
+      ? state.rawPwmR : (controlMode === 'reference1000'
+        ? state.referencePwmR : rpmCommandToPwm(state.commandR));
+    const leftTarget = clamp(leftRequest * (1 - bias), -maxMotor, maxMotor);
+    const rightTarget = clamp(rightRequest * (1 + bias), -maxMotor, maxMotor);
     state.motorL += response * (leftTarget - state.motorL);
     state.motorR += response * (rightTarget - state.motorR);
 
@@ -595,19 +852,11 @@ h3{font-size:1.02rem;margin-bottom:0}
       0, params.pitchMax);
     state.pitch += dt / (0.10 + dt) *
       (pitchDegrees * Math.PI / 180 - state.pitch);
-    state.time += dt;
-    state.controlElapsed += dt;
-    const controlDt = Math.max(0.002, params.controlPeriod / 1000);
-    if (state.controlElapsed + 1e-9 >= controlDt) {
-      const elapsed = state.controlElapsed;
-      state.controlElapsed = 0;
-      updateController(elapsed);
-    }
+    if (state.phase === 'running') state.time += dt;
 
     if (state.x < -0.1 || state.y < -0.1 ||
         state.x > 1.9 || state.y > 1.3) {
-      running = false;
-      failureMessage = 'El robot salió del tablero. Reduce velocidad o aumenta agarre.';
+      pauseRobot('El robot salió del tablero. Recolócalo y pulsa BOOT; no necesita recalibrarse.');
     }
     if (state.trailClock + dt >= 0.025) {
       state.trailClock = 0;
@@ -632,9 +881,21 @@ h3{font-size:1.02rem;margin-bottom:0}
   }
 
   function updateLap() {
+    if (state.phase !== 'running') return;
     const p = pointOnRobot(params.sensorLeadMax, 0);
     const nearest = nearestTrackArc(p.x, p.y);
-    if (nearest.distanceMm > 65 || !state.reading?.valid) return;
+    if (nearest.distanceMm > 65 || !state.reading?.valid) {
+      state.progressInterrupted = true;
+      state.progressMm = 0;
+      return;
+    }
+    // Una reaparición de la línea solo vuelve a anclar el contador. No se
+    // acredita como recorrido el arco que el robot atravesó sin sensarlo.
+    if (state.progressInterrupted) {
+      state.lastArcMm = nearest.s;
+      state.progressInterrupted = false;
+      return;
+    }
     let delta = nearest.s - state.lastArcMm;
     if (delta < -trackLengthMm / 2) delta += trackLengthMm;
     if (delta > trackLengthMm / 2) delta -= trackLengthMm;
@@ -655,22 +916,38 @@ h3{font-size:1.02rem;margin-bottom:0}
     state = {
       x: 1.125, y: 0.150, heading: 0, vx: 0, vy: 0, omega: 0, pitch: 0,
       motorL: 0, motorR: 0, commandL: 0, commandR: 0,
+      rawPwmL: 0, rawPwmR: 0, appliedPwmL: 0, appliedPwmR: 0,
       speedCommand: 0, accelCommand: 0, yawCommand: 0,
       positionFilter: 0, prevPosition: 0, dFilter: 0, severity: 0,
+      urgentPivotDirection: 0,
+      postPivotUntil: 0,
       referencePreviousError: 0, referenceIntegral: 0,
       referenceDerivative: 0, referencePwmL: 0, referencePwmR: 0,
       firstReading: true, lastDirection: 0, lossTime: 0,
       reading: null, slip: 0, time: 0, controlElapsed: 0,
       trail: [], trailClock: 0, laps: 0, progressMm: 0,
       lapStartedAt: 0, lastLapSeconds: null, lastArcMm: 0,
+      progressInterrupted: false,
+      phase: 'calibrating', powerTime: 0, calibrationElapsed: 0,
+      calibrationStage: 0, calibrationStageElapsed: 0,
+      calibrationNoProgress: 0, calibrationLossTime: 0,
+      calibrationLastPosition: 0,
+      calibrationProgressPosition: 0, calibrationMask: 0,
+      calibrationPwmWorking: clamp(params.calibrationPwm, 0,
+        params.calibrationPwmMax),
+      calibrationLearnedPwm: 0,
     };
     const p = pointOnRobot(params.sensorLeadMax, 0);
     startArcMm = nearestTrackArc(p.x, p.y).s;
     state.lastArcMm = startArcMm;
     state.reading = senseLine();
+    state.calibrationLastPosition = state.reading.valid
+      ? state.reading.positionM : 0;
+    state.calibrationProgressPosition = state.calibrationLastPosition;
     lastFrameMs = 0;
     accumulator = 0;
     failureMessage = '';
+    running = true;
     updateUi(true);
     render();
   }
@@ -806,21 +1083,63 @@ h3{font-size:1.02rem;margin-bottom:0}
     }
   }
 
+  function pressBoot() {
+    if (state.phase === 'calibrating' || state.phase === 'fault') return false;
+    if (state.phase === 'running') {
+      pauseRobot('Pausa manual. BOOT reanuda sin repetir la calibración.');
+      updateUi(true);
+      render();
+      return true;
+    }
+    const reading = senseLine();
+    state.reading = reading;
+    if (!reading.valid) {
+      failureMessage = 'BOOT no inicia: centra la regleta sobre la línea. La calibración se conserva.';
+      state.phase = 'paused';
+      updateUi(true);
+      return false;
+    }
+    state.phase = 'running';
+    state.lossTime = 0;
+    state.firstReading = true;
+    state.controlElapsed = params.controlPeriod / 1000;
+    state.speedCommand = 0;
+    state.accelCommand = 0;
+    state.yawCommand = 0;
+    failureMessage = '';
+    running = true;
+    lastFrameMs = 0;
+    updateUi(true);
+    return true;
+  }
+
   function updateUi(force = false) {
     const status = $('statusBadge');
-    let label = 'Lista para iniciar';
+    let label = 'Lista: pulsa BOOT';
     let tone = '';
-    if (failureMessage) { label = 'Fuera de pista'; tone = 'danger'; }
-    else if (running && state.lossTime >= 0.030) {
+    if (state.phase === 'calibrating') {
+      label = `Calibrando · PWM ${Math.round(state.calibrationPwmWorking)}`;
+      tone = 'warning';
+    } else if (state.phase === 'fault') {
+      label = 'Fallo de calibración'; tone = 'danger';
+    } else if (state.phase === 'paused' && failureMessage) {
+      label = 'Pausada'; tone = 'warning';
+    } else if (state.phase === 'running' && state.lossTime >= 0.030) {
       label = 'Buscando línea'; tone = 'warning';
-    } else if (running) { label = 'Siguiendo línea'; }
-    else if (state.time > 0) { label = 'Pausada'; }
+    } else if (state.phase === 'running') { label = 'Siguiendo línea'; }
+    else if (state.phase === 'paused') { label = 'Pausada'; }
     status.textContent = label;
     status.dataset.tone = tone;
-    $('playButton').textContent = running ? 'Pausar' : (state.time > 0 ? 'Continuar' : 'Iniciar');
-    $('canvasOverlay').hidden = running || (state.time > 0 && !failureMessage);
-    if (!running && state.time === 0) $('canvasOverlay').textContent =
-      'Pulsa Iniciar para probar el robot';
+    $('playButton').textContent = state.phase === 'running'
+      ? 'BOOT · Pausar' : (state.phase === 'paused'
+        ? 'BOOT · Reanudar' : 'BOOT · Iniciar');
+    $('playButton').disabled = state.phase === 'calibrating' || state.phase === 'fault';
+    $('canvasOverlay').hidden = state.phase === 'calibrating' ||
+      state.phase === 'running' || (state.phase === 'paused' && !failureMessage);
+    if (state.phase === 'ready') {
+      $('canvasOverlay').hidden = false;
+      $('canvasOverlay').textContent = 'Calibración terminada. Pulsa BOOT para iniciar.';
+    }
     if (failureMessage) {
       $('canvasOverlay').hidden = false;
       $('canvasOverlay').textContent = failureMessage;
@@ -836,6 +1155,11 @@ h3{font-size:1.02rem;margin-bottom:0}
     let note = state.reading?.valid
       ? `Línea detectada. Error lateral: ${numberFormat.format(state.reading.positionM * 1000)} mm.`
       : `Línea no detectada: búsqueda hacia el último lado conocido.`;
+    if (state.phase === 'calibrating') {
+      note = `Calibración automática al energizar: barrido ${state.calibrationStage + 1} de 3, PWM ${Math.round(state.calibrationPwmWorking)}. BOOT no interviene.`;
+    } else if (state.phase === 'ready') {
+      note = `Calibración conservada para esta sesión. Pulsa BOOT para iniciar; las pausas no la repiten.`;
+    }
     if (state.laps > 0) {
       note += ` Vueltas: ${state.laps}; última: ${numberFormat.format(state.lastLapSeconds)} s.`;
     }
@@ -844,10 +1168,10 @@ h3{font-size:1.02rem;margin-bottom:0}
     } else if (params.straightRpm > maxRpm + 1) {
       note += ` La orden de recta se limita a ${Math.round(maxRpm)} RPM estimadas con el voltaje y carga actuales.`;
     }
-    if (force && !running && state.time === 0) {
+    if (force && state.phase === 'ready') {
       note = controlMode === 'reference1000'
-        ? 'Referencia de 1000 RPM lista: 16 sensores, centroide, PID y PWM original (recta hasta 165/255).'
-        : 'Regleta centrada. El candidato de 3000 RPM usa 16 lecturas, centroide, PD y velocidades independientes.';
+        ? 'Calibración lista. Referencia de 1000 RPM: 16 sensores, centroide, PID y PWM original.'
+        : 'Calibración lista. La v4 de 3000 RPM espera BOOT para iniciar y no recalibra al pausar.';
     }
     $('readout').textContent = note;
   }
@@ -992,8 +1316,8 @@ h3{font-size:1.02rem;margin-bottom:0}
   function syncModeUi() {
     $('controllerMode').value = controlMode;
     $('modeExplanation').textContent = controlMode === 'reference1000'
-      ? 'Comparación con el firmware exitoso: motor nominal de 1000 RPM, PWM de recta hasta 165/255, PID y búsqueda originales. La calibración se supone hecha; no se ejecuta el archivo .ino.'
-      : 'Candidato de 3000 RPM basado en la simulación de CoppeliaSim: 16 sensores, corrección diferencial y rampas de aceleración. Todavía requiere validación física.';
+      ? 'Comparación con el firmware exitoso: motor nominal de 1000 RPM, PWM de recta hasta 165/255, PID y búsqueda originales. La calibración automática se representa antes de habilitar BOOT.'
+      : 'V4 robusta para motor nominal de 3000 RPM: calibra una sola vez al energizar, espera BOOT y usa 16 sensores, PD, desacople y zona muerta PWM.';
     for (const key of advancedOnlyControls) {
       const disabled = controlMode === 'reference1000';
       for (const kind of ['range', 'min', 'value', 'max']) {
@@ -1026,7 +1350,7 @@ h3{font-size:1.02rem;margin-bottom:0}
   function applyPreset(name) {
     const selected = presets[name];
     if (!selected) return;
-    if (name === 'firmware3000') {
+    if (name === 'firmware3000' || name === 'v3Deadband') {
       controlMode = 'advanced3000';
       advancedMotorRpm = 3000;
     }
@@ -1045,7 +1369,11 @@ h3{font-size:1.02rem;margin-bottom:0}
       button.setAttribute('aria-pressed', String(button.dataset.preset === name));
     });
     syncModeUi();
-    $('presetWarning').hidden = name !== 'firmware3000';
+    const warning = $('presetWarning');
+    warning.hidden = name !== 'firmware3000' && name !== 'v3Deadband';
+    warning.textContent = name === 'v3Deadband'
+      ? 'Diagnóstico reproducible: la v3 intenta calibrar con PWM 55, por debajo de la zona muerta física 70. El robot no gira y la calibración termina en fallo.'
+      : 'Este escenario conserva las órdenes anteriores de 3000 RPM y PWM de calibración 55. Con zona muerta 70 debe fallar antes de iniciar; no valida el robot físico.';
     saveSettings();
     running = false;
     resetState();
@@ -1061,10 +1389,7 @@ h3{font-size:1.02rem;margin-bottom:0}
       button.addEventListener('click', () => applyPreset(button.dataset.preset));
     });
     $('playButton').addEventListener('click', () => {
-      if (failureMessage) resetState();
-      running = !running;
-      lastFrameMs = 0;
-      updateUi();
+      pressBoot();
       render();
     });
     $('resetButton').addEventListener('click', () => {
@@ -1102,8 +1427,10 @@ h3{font-size:1.02rem;margin-bottom:0}
       get state() { return state; },
       get params() { return params; },
       get controlMode() { return controlMode; },
+      get running() { return running; },
       get trackLengthMm() { return trackLengthMm; },
       senseLine, resetState, step: updatePhysics, updateLap, changeMode,
+      pressBoot, rpmCommandToPwm, pwmToMotorRpm,
       setParam(key, value) {
         if (!definitions.has(key)) throw new Error('Parámetro desconocido');
         params[key] = value;
