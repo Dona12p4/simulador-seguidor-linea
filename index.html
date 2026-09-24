@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#101b2c">
-  <meta name="simulator-version" content="evidencia-v64-20260924">
+  <meta name="simulator-version" content="fisica-v65-20260924">
   <meta name="description" content="Simulador ajustable del seguidor de línea sobre la pista impresa de 180 × 120 cm.">
   <title>Seguidor de línea · simulador físico</title>
   <style>
@@ -74,6 +74,12 @@ h3{font-size:1.02rem;margin-bottom:0}
 .replay-controls p{line-height:1.5;overflow-wrap:anywhere}
 .replay-controls .button-group{flex-wrap:wrap;gap:8px}
 .sensor-panel [hidden]{display:none!important}
+.evidence-panel{margin:18px 0;background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:20px;min-width:0}
+.comparison-scroll{overflow-x:auto}.comparison-table{table-layout:fixed}.comparison-table th:first-child{width:42%}.comparison-table td,.comparison-table th{overflow-wrap:anywhere}
+.evidence-panel .simulation-note{text-align:left;margin-top:12px;display:block}
+#clockStatus{display:block;text-align:left;max-width:350px;font-variant-numeric:tabular-nums}
+#clockStatus[data-tone="warning"],#comparisonStatus[data-tone="warning"]{color:#8d4d08}
+@media(max-width:600px){.evidence-panel{padding:14px}.comparison-table td,.comparison-table th{padding:8px 4px}.playback-row{flex-wrap:wrap}}
 @media(max-width:600px){.sensor-panel{padding:14px}.sensor-bars{grid-template-columns:repeat(8,minmax(0,1fr));gap:7px}.sensor-column{height:52px}.sensor-table{font-size:12px}.replay-controls .button{min-height:44px}}
 
 </style>
@@ -82,7 +88,7 @@ h3{font-size:1.02rem;margin-bottom:0}
   <main class="app-shell">
     <header class="topbar">
       <div>
-        <p class="eyebrow">CONTROL BÁSICO · SIMULADOR V6.4</p>
+        <p class="eyebrow">CONTROL BÁSICO · SIMULADOR V6.5</p>
         <h1>Seguidor de línea</h1>
         <p class="subtitle">Prueba velocidad, agarre y geometría en la misma pista de 180 × 120 cm que imprimiste.</p>
       </div>
@@ -111,8 +117,8 @@ h3{font-size:1.02rem;margin-bottom:0}
         </select>
       </div>
       <p class="mode-explanation" id="modeExplanation">ADC y calibración por canal; los grupos anchos y errores laterales se observan, no detienen por sí solos. La dinámica y el movimiento de calibración siguen siendo modelos aproximados.</p>
-      <details class="sensor-details"><summary>Comparar la respuesta de los motores</summary>
-        <p class="mode-explanation">En «Parámetros físicos → Ley motriz», 0 conserva el modelo anterior, demasiado lento frente al video. Para explorar la respuesta más rápida, calibra con 0 y cambia a 1 antes de iniciar: conserva los rangos, pero en las pruebas pierde el seguimiento. Calibrar directamente con 1 también falla con la inercia supuesta. Son hipótesis por contrastar, no una física ya calibrada.</p>
+      <details class="sensor-details"><summary>Cómo se ajustó la respuesta física</summary>
+        <p class="mode-explanation">La planta nueva separa la fuerza necesaria para arrancar, la respuesta al PWM durante la marcha y la respuesta al cortar o invertir la orden. Se contrastó con la calibración a PWM 70 y con las vueltas del video, manteniendo el controlador. Los tiempos de respuesta son ajustes efectivos del modelo, no mediciones independientes de cada motor. En el selector, 0 conserva la fórmula histórica, 1 la primera hipótesis proporcional y 2 el modelo nuevo que se abre por defecto.</p>
       </details>
 
       <div class="playback-row">
@@ -124,7 +130,7 @@ h3{font-size:1.02rem;margin-bottom:0}
           <button class="button button-secondary" id="resetButton" type="button">Reenergizar</button>
           <button class="button button-secondary" id="viewButton" type="button" aria-pressed="false">Seguir robot</button>
         </div>
-        <p class="simulation-note">Tiempo simulado · la vista no cambia la física</p>
+        <p class="simulation-note" id="clockStatus">Reloj físico de paso fijo · objetivo 1 segundo simulado por segundo real</p>
       </div>
 
       <div class="metrics" aria-live="polite">
@@ -144,6 +150,27 @@ h3{font-size:1.02rem;margin-bottom:0}
         </div>
       </div>
       <p class="readout" id="readout" aria-live="polite">Regleta centrada. El código usa 16 lecturas, centroide, PD y velocidades independientes en ambas ruedas.</p>
+    </section>
+
+    <section class="evidence-panel" aria-labelledby="evidenceTitle">
+      <div class="panel-heading">
+        <div><p class="section-kicker">CONTRASTE CON TUS ENSAYOS</p><h2 id="evidenceTitle">Robot físico frente al modelo</h2></div>
+      </div>
+      <div class="comparison-scroll">
+        <table class="sensor-table comparison-table">
+          <thead><tr><th>Medida</th><th>Físico</th><th>Esta simulación</th></tr></thead>
+          <tbody>
+            <tr><td>Vuelta completa</td><td>≈ 9–10 s en video</td><td id="compareLap">Sin vuelta completa</td></tr>
+            <tr><td>Error absoluto · mediana / p95</td><td>14,8 / 33,6 mm</td><td id="compareError">—</td></tr>
+            <tr><td>PWM mediano · izquierdo / derecho</td><td>60 / 78</td><td id="comparePwm">—</td></tr>
+            <tr><td>Sensores del grupo · mediana / p95</td><td>5 / 10</td><td id="compareGroup">—</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="simulation-note" id="comparisonStatus">Se comparan resultados; estas cifras no conducen el robot ni fijan el cronómetro.</p>
+      <details class="sensor-details"><summary>Alcance de la comparación</summary>
+        <p class="mode-explanation">Las estadísticas físicas corresponden a 14 533 muestras en marcha. El video da una referencia aproximada, con incertidumbre cercana a un segundo, y no está sincronizado con el CSV. p95 significa que el 95 % de las lecturas queda por debajo de ese valor. Se excluye la salida final donde faltaba madera: no representa una pista con soporte continuo. Igualar el tiempo no demuestra por sí solo que sensores, giro y fricción sean fieles.</p>
+      </details>
     </section>
 
     <section class="sensor-panel" aria-labelledby="sensorTitle">
@@ -205,12 +232,12 @@ h3{font-size:1.02rem;margin-bottom:0}
     <section class="assumptions" aria-labelledby="assumptionsTitle">
       <p class="section-kicker">QUÉ REPRESENTA</p>
       <h2 id="assumptionsTitle">Una prueba aproximada, no una predicción garantizada</h2>
-      <p>V6.4 distingue tiempo acumulado, intervalo abierto y vuelta completa. El contador virtual exige recorrido neto y cierre: oscilar o recuperar la línea no regala vueltas. El CSV físico no mueve al robot dibujado ni permite localizarlo de forma absoluta; una huella repetida en una pista simétrica no basta para saber en qué mitad está.</p>
+      <p>V6.5 ajusta la respuesta efectiva al PWM y al frenado con las observaciones disponibles. Distingue tiempo acumulado, intervalo abierto y vuelta completa. El contador virtual exige recorrido neto y cierre: oscilar o recuperar la línea no regala vueltas. El CSV físico no mueve al robot dibujado ni permite localizarlo de forma absoluta; una huella repetida en una pista simétrica no basta para saber en qué mitad está.</p>
       <p>La línea y sus medidas son las del archivo vectorial usado para imprimir la pista: 180 × 120 cm y trazo de 18 mm. El robot parte de radio de rueda 10 mm, separación de 120 mm y regleta curva de 16 sensores adelantada entre 160 y 175 mm.</p>
-      <p>El derrape, la respuesta del motor y la elevación de la nariz se calculan con un modelo reducido en 2D. Aún no se han medido el coeficiente de fricción, la inercia, el centro de masa ni las RPM bajo carga del robot físico. Los valores superiores a la velocidad estimada con 5 V y carga son escenarios hipotéticos, no velocidad confirmada.</p>
+      <p>El derrape, la respuesta del motor y la elevación de la nariz se calculan con un modelo reducido en 2D. La respuesta temporal se ajustó, pero aún no se han medido por separado el coeficiente de fricción, la inercia, el centro de masa ni las RPM bajo carga del robot físico. Una vuelta parecida no identifica esos parámetros. Se supone apoyo continuo bajo las ruedas: el tamaño del papel no garantiza que la madera sostenga todo el carro, y esta versión no simula la caída por falta de soporte.</p>
       <p>La adquisición v6.3 separa ADC (0–4095), mínimos y máximos por canal, intensidad (0–1000) y grupo contiguo elegido. Un rango menor de 60 se ignora. Acepta grupos de 1–16 sensores con señal suficiente: más de 7 se anota como anchura observada, sin detener ni descartar su posición ponderada. Tampoco se detiene por superar 35 mm. Iniciar y reanudar aceptan cualquier posición estimable; no recalibran ni acreditan una vuelta interrumpida.</p>
       <p>Se conserva el corte inmediato cuando falta señal suficiente y una pausa tras 24 ms. Pico 230 y suma 420 son umbrales provisionales del software, no una prueba infalible de presencia o ausencia de línea. Los 16 ADC saturados exactamente en 0 o todos en 4095 no producen una posición estimable. La calibración provisional conserva sus requisitos de contraste y mínimo de dos canales. El botón BOOT permite pausar manualmente. Cada fila CSV se compara con la política de su firmware; sin versión se indica una política histórica supuesta.</p>
-      <p>En adquisición, Calibrar recoge mínimos y máximos con pulsos de 35/16 ms por ciclo de 50 ms y protección predictiva de 40 ms, trasladados del firmware. La referencia de 1000 RPM conserva su barrido anterior. El sondeo de signo, el centrado y la recuperación siguen simplificados; no ejecuta íntegramente el archivo Arduino. La medición óptica sintética, el agarre y la dinámica no están identificados por el CSV. La reproducción de CSV muestra las intensidades guardadas, sin inventar mínimos/máximos ausentes ni posición X/Y.</p>
+      <p>En adquisición, Calibrar recoge mínimos y máximos con pulsos de 35/16 ms por ciclo de 50 ms y protección predictiva de 40 ms, trasladados del firmware. Primero adquiere la línea, barre ambos lados y termina con centrado normalizado; no se cargan rangos ideales para hacer pasar el barrido. La referencia de 1000 RPM conserva su barrido anterior. El sondeo de signo y la recuperación siguen simplificados; no ejecuta íntegramente el archivo Arduino. La reproducción de CSV muestra las intensidades guardadas, sin inventar mínimos/máximos ausentes ni posición X/Y.</p>
       <p>La transferencia óptica usada en el modelo es ADC = 500 + 3000 × reflectancia, limitada a 0–4095. Es una hipótesis ajustable por contraste, altura y ruido, no una curva medida. El archivo físico permite comprobar el procesamiento de lecturas, no validar todavía esa transferencia ni una vuelta simulada.</p>
       <p>El modo «Referencia exitosa» reproduce la lógica del firmware físico protegido de 1000 RPM: umbrales de 16 sensores, centroide, PID, velocidad PWM variable, pivote y búsqueda. No ejecuta código Arduino dentro del navegador. El archivo original no se modifica.</p>
     </section>
@@ -795,6 +822,224 @@ h3{font-size:1.02rem;margin-bottom:0}
 
 </script>
   <script>
+// Fixed-step scheduling only: this clock does not change the physical speed.
+// Active wall time = simulated time + backlog + explicitly discarded time.
+(function installSimulationClock(root) {
+  'use strict';
+
+  const defaultMeasureNow = () => typeof performance !== 'undefined' && performance.now
+    ? performance.now() : Date.now();
+
+  function create({stepSeconds = 0.002, maxStepsPerFrame = 40,
+    maxWorkMs = 8, measureNow = defaultMeasureNow} = {}) {
+    if (!Number.isFinite(stepSeconds) || stepSeconds <= 0) {
+      throw new RangeError('stepSeconds must be finite and positive');
+    }
+    if (!Number.isInteger(maxStepsPerFrame) || maxStepsPerFrame < 1) {
+      throw new RangeError('maxStepsPerFrame must be a positive integer');
+    }
+    if (!Number.isFinite(maxWorkMs) || maxWorkMs <= 0 || typeof measureNow !== 'function') {
+      throw new RangeError('maxWorkMs must be positive and measureNow must be a function');
+    }
+
+    // This tolerance covers floating-point accumulation, not unearned steps.
+    const epsilon = stepSeconds * 1e-9;
+    let lastMs = null;
+    let running = false;
+    let suspended = false;
+    let simulatedSeconds = 0;
+    let activeWallSeconds = 0;
+    let backlogSeconds = 0;
+    let excludedWallSeconds = 0;
+    let suspendedWallSeconds = 0;
+    let discardedActiveSeconds = 0;
+    let stepsLastFrame = 0;
+    let limitReason = '';
+    let event = 'reset';
+
+    function snapshot() {
+      const accountedActive = activeWallSeconds - discardedActiveSeconds;
+      return {
+        stepSeconds, maxStepsPerFrame, maxWorkMs,
+        running, suspended, simulatedSeconds, activeWallSeconds, backlogSeconds,
+        excludedWallSeconds, suspendedWallSeconds, discardedActiveSeconds,
+        stepsLastFrame, limitReason,
+        budgetLimited: running && !suspended && backlogSeconds + epsilon >= stepSeconds && !!limitReason,
+        rateRatio: accountedActive > epsilon ? simulatedSeconds / accountedActive : 1,
+        event,
+      };
+    }
+
+    function checkTime(nowMs) {
+      if (!Number.isFinite(nowMs) || nowMs < 0) {
+        throw new RangeError('Clock timestamps must be finite and nonnegative');
+      }
+      if (lastMs !== null && nowMs < lastMs) {
+        throw new RangeError('Clock timestamps must be monotonic; reset for a new time origin');
+      }
+    }
+
+    function accountUntil(nowMs) {
+      checkTime(nowMs);
+      if (lastMs !== null) {
+        const elapsed = (nowMs - lastMs) / 1000;
+        if (running && !suspended) {
+          activeWallSeconds += elapsed;
+          backlogSeconds += elapsed;
+        } else {
+          excludedWallSeconds += elapsed;
+          if (suspended) suspendedWallSeconds += elapsed;
+        }
+      }
+      lastMs = nowMs;
+    }
+
+    function discardInterruptedBacklog() {
+      // A user pause/visibility suspension is an explicit discontinuity, not
+      // a request to perform overdue movement after the next resume.
+      discardedActiveSeconds += backlogSeconds;
+      backlogSeconds = 0;
+      limitReason = '';
+    }
+
+    function setRunning(value, nowMs) {
+      if (typeof value !== 'boolean') throw new TypeError('running must be boolean');
+      accountUntil(nowMs);
+      if (running !== value) {
+        if (!value) discardInterruptedBacklog();
+        running = value;
+        event = value ? 'started' : 'paused';
+      }
+      return snapshot();
+    }
+
+    function setSuspended(value, nowMs) {
+      if (typeof value !== 'boolean') throw new TypeError('suspended must be boolean');
+      accountUntil(nowMs);
+      if (suspended !== value) {
+        if (value) discardInterruptedBacklog();
+        suspended = value;
+        event = value ? 'suspended' : 'visible';
+      }
+      // This only changes scheduling visibility, never the caller's robot
+      // state or its user-selected running/paused flag.
+      return snapshot();
+    }
+
+    function reset(nowMs = null) {
+      if (nowMs !== null && (!Number.isFinite(nowMs) || nowMs < 0)) {
+        throw new RangeError('Reset timestamp must be finite and nonnegative');
+      }
+      lastMs = nowMs;
+      running = false;
+      suspended = false;
+      simulatedSeconds = activeWallSeconds = backlogSeconds = 0;
+      excludedWallSeconds = suspendedWallSeconds = discardedActiveSeconds = 0;
+      stepsLastFrame = 0;
+      limitReason = '';
+      event = 'reset';
+      return snapshot();
+    }
+
+    // Call onStep(dt) once per physical step. Returning false stops catch-up
+    // immediately; e.g. updatePhysics paused or finished calibration. Count
+    // and time limits are checked BETWEEN steps, never inside physical code.
+    function tick(nowMs, onStep) {
+      if (typeof onStep !== 'function') throw new TypeError('tick requires a step callback');
+      accountUntil(nowMs);
+      stepsLastFrame = 0;
+      limitReason = '';
+      if (!running || suspended) return snapshot();
+
+      const workStarted = measureNow();
+      while (running && !suspended && backlogSeconds + epsilon >= stepSeconds) {
+        if (stepsLastFrame >= maxStepsPerFrame) { limitReason = 'step_limit'; break; }
+        if (stepsLastFrame > 0 && measureNow() - workStarted >= maxWorkMs) {
+          limitReason = 'work_budget'; break;
+        }
+        // Consume first, so a pause/reset inside onStep can safely interrupt
+        // the scheduler without subtracting a step from a cleared backlog.
+        backlogSeconds = Math.max(0, backlogSeconds - stepSeconds);
+        simulatedSeconds += stepSeconds;
+        stepsLastFrame += 1;
+        const keepRunning = onStep(stepSeconds);
+        if (keepRunning === false) {
+          running = false;
+          discardInterruptedBacklog();
+          event = 'step_stopped';
+        }
+      }
+      if (running && !suspended) event = limitReason ? 'behind' : 'ticked';
+      return snapshot();
+    }
+
+    return Object.freeze({setRunning, setSuspended, tick, reset, snapshot});
+  }
+
+  root.SimulationClock = Object.freeze({create});
+})(globalThis);
+
+</script>
+  <script>
+/* Aggregate-only comparison. Never supplies position, PWM or timing to the plant. */
+(function installFidelityMetrics(root) {
+  'use strict';
+  const evidence = Object.freeze({
+    lapVideoSeconds: [9, 10], videoTimingUncertaintySeconds: 1,
+    calibrationSeconds: 3.324,
+    medianAbsoluteErrorMm: 14.834, p95AbsoluteErrorMm: 33.590,
+    medianPwmLeft: 60, medianPwmRight: 78,
+    medianActiveGroup: 5, p95ActiveGroup: 10,
+    opposingPwmPercent: 5.22, runningRows: 14533,
+    scope: 'Video y CSV del 24 de septiembre: no están sincronizados entre sí. Se excluye la salida final por falta de soporte de madera.',
+  });
+  function histogram(min, max, step) {
+    const bins = new Uint32Array(Math.round((max-min)/step)+1);
+    let count = 0;
+    return {
+      add(value) {
+        if (!Number.isFinite(value)) return;
+        const index = Math.min(bins.length-1, Math.max(0, Math.round((value-min)/step)));
+        bins[index]++; count++;
+      },
+      quantile(q) {
+        if (!count) return null;
+        const target = Math.max(1, Math.ceil(q*count));
+        let sum = 0;
+        for (let i=0;i<bins.length;i++) { sum += bins[i]; if (sum>=target) return min+i*step; }
+        return max;
+      },
+    };
+  }
+  function create() {
+    const error = histogram(0, 1000, .1);
+    const left = histogram(-255, 255, 1), right = histogram(-255, 255, 1);
+    const group = histogram(0, 16, 1);
+    let count = 0, opposing = 0, invalid = 0;
+    return {
+      record({positionM, valid, pwmLeft, pwmRight, activeGroup}) {
+        if (![pwmLeft, pwmRight, activeGroup].every(Number.isFinite)) return;
+        count++;
+        left.add(pwmLeft); right.add(pwmRight); group.add(activeGroup);
+        if (valid && Number.isFinite(positionM)) error.add(Math.abs(positionM)*1000);
+        else invalid++;
+        if (pwmLeft*pwmRight<0) opposing++;
+      },
+      snapshot() {
+        return {samples:count, invalidSamples:invalid,
+          medianAbsoluteErrorMm:error.quantile(.5), p95AbsoluteErrorMm:error.quantile(.95),
+          medianPwmLeft:left.quantile(.5), medianPwmRight:right.quantile(.5),
+          medianActiveGroup:group.quantile(.5), p95ActiveGroup:group.quantile(.95),
+          opposingPwmPercent:count ? 100*opposing/count : null};
+      },
+    };
+  }
+  root.FidelityMetrics = Object.freeze({evidence, create});
+  if (typeof module !== 'undefined' && module.exports) module.exports = root.FidelityMetrics;
+})(typeof globalThis !== 'undefined' ? globalThis : this);
+
+</script>
+  <script>
 /*
  * Simulador interactivo del seguidor de línea.
  * La pista dibujada y sensada sale del mismo path vectorial del PDF impreso.
@@ -815,10 +1060,12 @@ h3{font-size:1.02rem;margin-bottom:0}
   const TRACK_W = 1800;
   const TRACK_H = 1200;
   const STEP = 0.002;
+  const simulationClock = globalThis.SimulationClock.create({stepSeconds:STEP, maxStepsPerFrame:40, maxWorkMs:8});
+  let fidelity = globalThis.FidelityMetrics.create();
   const GRAVITY = 9.81;
   // Clave nueva: evita que ajustes antiguos (850/220, Kp 320) oculten el
   // perfil v4 robusto cuando el usuario abre la actualización.
-  const STORAGE_KEY = 'seguidor-linea-web-planta-v64-20260924';
+  const STORAGE_KEY = 'seguidor-linea-web-planta-v65-20260924';
   const numberFormat = new Intl.NumberFormat('es-CO', { maximumFractionDigits: 2 });
 
   const groups = [
@@ -848,9 +1095,15 @@ h3{font-size:1.02rem;margin-bottom:0}
         { key: 'mu', label: 'Coeficiente de agarre', unit: 'μ', value: 0.8, min: 0.05, max: 1.5, step: 0.05, hardMax: 5, help: 'Menos agarre limita fuerza lateral y longitudinal; facilita trompos.' },
         { key: 'mass', label: 'Masa total', unit: 'kg', value: 0.38, min: 0.1, max: 1, step: 0.02, hardMax: 10, help: 'Estimación inicial; pesa el robot para reemplazarla.' },
         { key: 'yawInertia', label: 'Inercia de giro', unit: 'g·m²', value: 2.5, min: 0.2, max: 10, step: 0.1, hardMax: 100, help: 'Valor estimado: cuanto mayor, más cuesta girar o corregir.' },
-        { key: 'motorTau', label: 'Respuesta de motores', unit: 'ms', value: 70, min: 5, max: 300, step: 5, hardMax: 3000, help: 'Retardo mecánico aproximado; no hay curva de par medida.' },
+        { key: 'motorTau', label: 'Respuesta histórica (plantas 0 y 1)', unit: 'ms', value: 70, min: 5, max: 300, step: 5, hardMax: 3000, help: 'No se utiliza en la planta 2. La planta nueva distingue impulso, corte e inercia efectiva de tracción.' },
         { key: 'motorBias', label: 'Diferencia entre motores', unit: '%', value: 0, min: -30, max: 30, step: 1, hardMax: 100, hardMin: -100, help: 'Negativo: rueda izquierda más fuerte, tiende a girar a la derecha.' },
-        { key: 'motorLaw', label: 'Ley motriz: 0 anterior · 1 exploratoria', unit: '', value: 0, min: 0, max: 1, step: 1, hardMax: 1, hardMin: 0, help: '0 permite el barrido y conserva la curva anterior, pero resulta demasiado lenta frente al video. 1 separa arranque y marcha; puede perder la línea en la calibración con la inercia supuesta. Puedes calibrar en 0, cambiar a 1 sin borrar rangos y probar. Ninguna está identificada con datos físicos.' },
+        { key: 'motorLaw', label: 'Planta: 0 histórica · 1 exploratoria · 2 inferida', unit: '', value: 2, min: 0, max: 2, step: 1, hardMax: 2, hardMin: 0, help: '2 usa una ganancia y respuesta efectivas contrastadas con observaciones; no son parámetros físicos identificados de forma única. 0 conserva la ley lenta anterior y 1 la hipótesis proporcional previa.' },
+        { key: 'effectiveGain', label: 'Ganancia motriz efectiva', unit: '×', value: 1, min: 0.2, max: 2, step: 0.01, hardMax: 5, help: 'Sólo planta 2: escala PWM→movimiento, inferida conjuntamente con carga y respuesta. No cambia las ganancias PID ni las órdenes del firmware.' },
+        { key: 'effectiveMotorTau', label: 'Respuesta efectiva al impulsar', unit: 'ms', value: 12, min: 2, max: 150, step: 1, hardMax: 1000, help: 'Sólo planta 2; respuesta reducida por contrastar, no constante de motor medida.' },
+        { key: 'effectiveBrakeTau', label: 'Respuesta efectiva al soltar/invertir', unit: 'ms', value: 5, min: 2, max: 150, step: 1, hardMax: 1000, help: 'Sólo planta 2; representa conjuntamente desaceleración mecánica y respuesta de tracción, sin afirmar frenado eléctrico medido.' },
+        { key: 'effectiveBodyTau', label: 'Respuesta efectiva de tracción', unit: 'ms', value: 15, min: 2, max: 150, step: 1, hardMax: 1000, help: 'Sólo planta 2. Evita imponer siempre la cascada antigua de 70+55 ms, incompatible con la respuesta óptica rápida observada.' },
+        { key: 'effectiveAccelMax', label: 'Capacidad física de aceleración', unit: 'm/s²', value: 2, min: 0.1, max: 15, step: 0.1, hardMax: 100, help: 'Sólo planta 2: límite efectivo de fuerza motriz por masa, supuesto hasta medirlo. Es independiente de la rampa solicitada por el código.' },
+        { key: 'effectiveBrakeMax', label: 'Capacidad física de desaceleración', unit: 'm/s²', value: 10, min: 0.1, max: 15, step: 0.1, hardMax: 100, help: 'Sólo planta 2: límite efectivo supuesto; además se aplica el círculo de adherencia.' },
         { key: 'pwmDeadband', label: 'Umbral provisional de arranque', unit: 'PWM', value: 70, min: 0, max: 160, step: 1, hardMax: 254, help: 'Hipótesis para iniciar una rueda desde reposo. La ley exploratoria no resta este valor a la velocidad una vez que gira. No está medido a partir del tiempo de vuelta.' },
         { key: 'pwmPivotDeadband', label: 'Umbral de arranque al pivotar', unit: 'PWM', value: 70, min: 0, max: 160, step: 1, hardMax: 254, help: 'Hipótesis independiente para iniciar un pivote; el umbral observado girando no identifica la respuesta de avance. El valor inicial no es un ajuste al video.' },
         { key: 'accelLimit', label: 'Aceleración ordenada', unit: 'm/s²', value: 2, min: 0.1, max: 8, step: 0.1, hardMax: 100, help: 'Límite v4 del perfil longitudinal; más alto puede levantar la nariz.' },
@@ -863,6 +1116,7 @@ h3{font-size:1.02rem;margin-bottom:0}
     {
       name: 'Geometría y sensores', open: false,
       items: [
+        { key: 'trackDirection', label: 'Inicio: −1 antihorario · 1 horario', unit: '', value: -1, min: -1, max: 1, step: 2, hardMax: 1, hardMin: -1, help: 'Sentido observado en el video: antihorario. Se aplica al reenergizar o recolocar; no intercambia nombres de motores ni modifica la pista.' },
         { key: 'wheelRadius', label: 'Radio de rueda', unit: 'mm', value: 10, min: 2, max: 30, step: 0.5, hardMax: 100, help: 'Medido: diámetro aproximado 20 mm.' },
         { key: 'wheelBase', label: 'Separación entre ruedas', unit: 'mm', value: 120, min: 20, max: 250, step: 2, hardMax: 1000, help: 'Distancia centro a centro usada en el desacople.' },
         { key: 'sensorLeadMin', label: 'Adelanto en extremos', unit: 'mm', value: 160, min: 40, max: 300, step: 1, hardMax: 1000, help: 'La regleta es curva; sus extremos están menos adelantados.' },
@@ -880,6 +1134,10 @@ h3{font-size:1.02rem;margin-bottom:0}
   // Motor, voltaje y pérdidas pertenecen a la planta; no cambian el código.
   const motorPhysical = groups[0].items.splice(0, 3);
   groups[1].items.unshift(...motorPhysical);
+  // These bound the firmware's requested motion, not surface physics.
+  const codeLimits = new Set(['accelLimit', 'brakeLimit', 'lateralLimit']);
+  groups[0].items.push(...groups[1].items.filter(item => codeLimits.has(item.key)));
+  groups[1].items = groups[1].items.filter(item => !codeLimits.has(item.key));
   for (const group of groups) for (const item of group.items) {
     if (['wheelRadius', 'wheelBase', 'sensorPitch', 'heightFalloff', 'mass', 'yawInertia', 'firmwareRpmScale'].includes(item.key))
       item.hardMin = item.min;
@@ -896,9 +1154,9 @@ h3{font-size:1.02rem;margin-bottom:0}
     firmware3000: { motorRpm: 3000, straightRpm: 1950, curveRpm: 550,
       kp: 420, kd: 1.2, pwmFloor: 46, calibrationPwm: 55,
       calibrationPwmMax: 55 },
-    slippery: { mu: 0.23, lateralLimit: 8, straightRpm: 1950 },
-    lift: { pitchGain: 2.2, pitchMax: 9, accelLimit: 6.5, sensorHeight: 3 },
-    bias: { motorBias: -18, straightRpm: 1950, mu: 0.6 },
+    slippery: { mu: 0.23 },
+    lift: { pitchGain: 2.2, pitchMax: 9, sensorHeight: 3 },
+    bias: { motorBias: -18 },
   };
   const advancedOnlyControls = new Set([
     'motorRpm', 'straightRpm', 'curveRpm', 'startRpm', 'maxYawRate',
@@ -906,6 +1164,9 @@ h3{font-size:1.02rem;margin-bottom:0}
     'yawSlewRate', 'kp', 'kd', 'lateralLimit', 'pwmFloor',
     'calibrationPwm', 'calibrationPwmMax',
     'firmwareRpmScale', 'motorLaw', 'pwmPivotDeadband',
+    'effectiveGain', 'effectiveMotorTau', 'effectiveBrakeTau', 'effectiveBodyTau',
+    'effectiveAccelMax', 'effectiveBrakeMax',
+    'trackDirection',
   ]);
   let controlMode = 'advanced3000';
   let advancedMotorRpm = 3000;
@@ -913,8 +1174,6 @@ h3{font-size:1.02rem;margin-bottom:0}
   let state;
   let running = false;
   let followView = false;
-  let lastFrameMs = 0;
-  let accumulator = 0;
   let lastUiMs = 0;
   let canvasWidth = 0;
   let canvasHeight = 0;
@@ -958,9 +1217,11 @@ h3{font-size:1.02rem;margin-bottom:0}
     // This does not identify the lowest breakaway PWM; it only avoids
     // asserting that the observed working amplitude cannot start a wheel.
     if (!rollingSameDirection && magnitude < startingThreshold) return 0;
-    // Exploratory voltage-proportional running law. Load/voltage/RPM remain
-    // hypotheses; no lap-time factor or video-derived multiplier is applied.
-    return Math.sign(pwm) * loadedRpm() * magnitude / 255;
+    // Voltage-proportional running law. Plant 2 exposes an effective gain;
+    // its default remains 1. Response times, not a clock or hidden path,
+    // are constrained jointly by the observed calibration and lap behavior.
+    const effectiveGain = params.motorLaw >= 1.5 ? params.effectiveGain : 1;
+    return Math.sign(pwm) * loadedRpm() * Math.min(1, magnitude / 255 * effectiveGain);
   }
   function rpmCommandToPwm(rpm, pivot = state?.commandL * state?.commandR < 0) {
     const magnitude = Math.abs(rpm);
@@ -1067,10 +1328,12 @@ h3{font-size:1.02rem;margin-bottom:0}
       raw.push(Math.round(clamp(500 + 3 * intensity * channelGain, 0, 4095)));
     }
 
-    if (state.phase === 'calibrating')
+    const normalizedCentering = controlMode !== 'reference1000' &&
+      state.phase === 'calibrating' && state.calibrationStage === 4;
+    if (state.phase === 'calibrating' && !normalizedCentering)
       state.calibration = sensors.accumulateCalibration(state.calibration, raw);
     const normalized = sensors.normalize(raw, state.calibration.min, state.calibration.max);
-    const provisional = !state.calibrated;
+    const provisional = !state.calibrated && !normalizedCentering;
     const measurement = provisional ? sensors.provisional(raw, params.sensorPitch) :
       (controlMode === 'reference1000' ? sensors.detectLegacy(opticalStrengths.map(Math.round), params.sensorPitch) :
         sensors.detect(normalized.strengths, params.sensorPitch, raw));
@@ -1289,7 +1552,20 @@ h3{font-size:1.02rem;margin-bottom:0}
     }
     state.calibrationLossTime = 0;
     const position = reading.positionM;
-    const targets = [-0.035, 0.035, 0];
+    // Firmware stages: acquire/center, left, right, return, normalized center.
+    const targets = [0, -0.035, 0.035, 0, 0];
+    if (state.calibrationStage === 0 && !state.calibrationAcquired) {
+      state.rawPwmL = 0; state.rawPwmR = 0;
+      state.calibrationStableTime += dt;
+      state.calibrationNoProgress = 0;
+      if (state.calibrationStableTime >= 0.300) {
+        state.calibrationAcquired = true;
+        state.calibrationStableTime = 0;
+        state.calibrationProgressPosition = position;
+        state.calibrationProtection = {position:null, speed:0};
+      }
+      return;
+    }
     const stageTarget = targets[state.calibrationStage];
     const target = Math.abs(position) >= 0.042 ? 0 : stageTarget;
     const error = target - position;
@@ -1298,10 +1574,8 @@ h3{font-size:1.02rem;margin-bottom:0}
       state.rawPwmL = 0; state.rawPwmR = 0;
       state.calibrationStableTime += dt;
       state.calibrationNoProgress = 0;
-      // The final provisional centering combines endpoint hold (180 ms)
-      // and final hold (350 ms); the firmware's separate normalized phase
-      // and sign-probing/recovery FSM remain approximations, not full parity.
-      const hold = state.calibrationStage === 2 ? 0.530 : 0.180;
+      const hold = state.calibrationStage === 0 ? 0.300 :
+        (state.calibrationStage === 4 ? 0.350 : 0.180);
       if (state.calibrationStableTime < hold) return;
       state.calibrationStage += 1;
       state.calibrationStableTime = 0;
@@ -1311,10 +1585,10 @@ h3{font-size:1.02rem;margin-bottom:0}
       state.calibrationProtection = {position:null, speed:0};
       state.calibrationPwmWorking = clamp(Math.max(params.calibrationPwm,
         state.calibrationLearnedPwm - 5), 0, params.calibrationPwmMax);
-      if (state.calibrationStage >= targets.length) {
+      if (state.calibrationStage === 4 || state.calibrationStage >= targets.length) {
         const covered = state.calibration.validCount;
         if (covered < 14) enterFault(`Calibración incompleta: sólo ${covered}/16 canales tienen rango ADC ≥60. Recoloca y continúa.`);
-        else enterReady();
+        else if (state.calibrationStage >= targets.length) enterReady();
       }
       return;
     }
@@ -1545,16 +1819,17 @@ h3{font-size:1.02rem;margin-bottom:0}
     state.powerTime += dt;
     state.controlElapsed += dt;
     const controlDt = Math.max(0.002, params.controlPeriod / 1000);
+    let sampledRunning = false;
     if (['calibrating', 'running'].includes(state.phase) &&
         state.controlElapsed + 1e-9 >= controlDt) {
       const elapsed = state.controlElapsed;
       state.controlElapsed = 0;
       if (state.phase === 'calibrating') updateCalibrationController(elapsed);
-      else updateController(elapsed);
+      else { updateController(elapsed); sampledRunning = true; }
     }
 
     const maxMotor = loadedRpm();
-    const response = dt / (params.motorTau / 1000 + dt);
+    const reducedPlant = controlMode !== 'reference1000' && params.motorLaw >= 1.5;
     const bias = params.motorBias / 100;
     let leftRequest;
     let rightRequest;
@@ -1564,6 +1839,11 @@ h3{font-size:1.02rem;margin-bottom:0}
     state.appliedPwmR = state.phase === 'calibrating'
       ? state.rawPwmR : (controlMode === 'reference1000'
         ? state.referencePwmR : rpmCommandToPwm(state.commandR));
+    if (sampledRunning && state.reading) {
+      fidelity.record({positionM:state.reading.positionM, valid:state.reading.valid,
+        pwmLeft:state.appliedPwmL, pwmRight:state.appliedPwmR,
+        activeGroup:state.reading.activeGroup});
+    }
     const pivot = state.appliedPwmL * state.appliedPwmR < 0;
     if (controlMode === 'reference1000' && state.phase !== 'calibrating') {
       leftRequest = state.commandL;
@@ -1574,8 +1854,14 @@ h3{font-size:1.02rem;margin-bottom:0}
     }
     const leftTarget = clamp(leftRequest * (1 - bias), -maxMotor, maxMotor);
     const rightTarget = clamp(rightRequest * (1 + bias), -maxMotor, maxMotor);
-    state.motorL += response * (leftTarget - state.motorL);
-    state.motorR += response * (rightTarget - state.motorR);
+    const wheelResponse = (current, target) => {
+      const braking = target === 0 || current * target < 0 ||
+        Math.abs(target) < Math.abs(current);
+      const tauMs = reducedPlant ? (braking ? params.effectiveBrakeTau : params.effectiveMotorTau) : params.motorTau;
+      return dt / (Math.max(0.001, tauMs / 1000) + dt);
+    };
+    state.motorL += wheelResponse(state.motorL, leftTarget) * (leftTarget - state.motorL);
+    state.motorR += wheelResponse(state.motorR, rightTarget) * (rightTarget - state.motorR);
 
     const radius = params.wheelRadius / 1000;
     const base = params.wheelBase / 1000;
@@ -1585,9 +1871,13 @@ h3{font-size:1.02rem;margin-bottom:0}
     const desiredYaw = (uL - uR) / base; // giro horario positivo
     const mass = params.mass;
     const inertia = params.yawInertia / 1000;
-    const desiredAx = clamp((desiredV - state.vx) / 0.055,
-      -params.brakeLimit, params.accelLimit);
-    const desiredAlpha = clamp((desiredYaw - state.omega) / 0.055,
+    const bodyTau = reducedPlant ? Math.max(0.001, params.effectiveBodyTau / 1000) : 0.055;
+    // The inferred plant has separate effective motor-force limits and tire
+    // forces below, not firmware ramp settings (updateLongitudinal()).
+    const requestedAx = (desiredV - state.vx) / bodyTau;
+    const desiredAx = reducedPlant ? clamp(requestedAx, -params.effectiveBrakeMax, params.effectiveAccelMax) :
+      clamp(requestedAx, -params.brakeLimit, params.accelLimit);
+    const desiredAlpha = clamp((desiredYaw - state.omega) / bodyTau,
       -100, 100);
     const lateralForce = mass * (state.omega * state.vx - state.vy / 0.070);
     let leftForce = mass * desiredAx / 2 + inertia * desiredAlpha / base;
@@ -1673,8 +1963,13 @@ h3{font-size:1.02rem;margin-bottom:0}
 
   function resetState() {
     rng = 0x13579bdf;
+    fidelity = globalThis.FidelityMetrics.create();
+    simulationClock.reset(performance.now());
+    simulationClock.setSuspended(document.hidden, performance.now());
+    const direction = controlMode === 'reference1000' || params.trackDirection >= 0 ? 1 : -1;
     state = {
-      x: 1.125, y: 0.150, heading: 0, vx: 0, vy: 0, omega: 0, pitch: 0,
+      x: direction > 0 ? 1.125 : 1.475, y: 0.150,
+      heading: direction > 0 ? 0 : Math.PI, vx: 0, vy: 0, omega: 0, pitch: 0,
       motorL: 0, motorR: 0, commandL: 0, commandR: 0,
       rawPwmL: 0, rawPwmR: 0, appliedPwmL: 0, appliedPwmR: 0,
       speedCommand: 0, accelCommand: 0, yawCommand: 0,
@@ -1687,7 +1982,8 @@ h3{font-size:1.02rem;margin-bottom:0}
       reading: null, slip: 0, time: 0, controlElapsed: 0,
       trail: [], trailClock: 0, laps: 0, progressMm: 0,
       lapStartedAt: 0, lastLapSeconds: null, lastArcMm: 0,
-      lapCounter: globalThis.LapCounter.create({trackLengthMm, direction:1, maxStepMm:120}),
+      lapCounter: globalThis.LapCounter.create({trackLengthMm, direction, maxStepMm:120}),
+      trackDirection: direction,
       progressInterrupted: false,
       phase: 'idle', powerTime: 0, calibrationElapsed: 0,
       calibrated: false, calibration: sensors.createCalibration(),
@@ -1696,6 +1992,7 @@ h3{font-size:1.02rem;margin-bottom:0}
       calibrationNoProgress: 0, calibrationLossTime: 0,
       calibrationProtection: {position:null, speed:0}, calibrationPredicted: null,
       calibrationStableTime: 0, calibrationAtMaxSince: null,
+      calibrationAcquired: false,
       calibrationLastPosition: 0,
       calibrationProgressPosition: 0, calibrationMask: 0,
       calibrationPwmWorking: clamp(params.calibrationPwm, 0,
@@ -1709,8 +2006,6 @@ h3{font-size:1.02rem;margin-bottom:0}
     state.calibrationLastPosition = state.reading.valid
       ? state.reading.positionM : 0;
     state.calibrationProgressPosition = state.calibrationLastPosition;
-    lastFrameMs = 0;
-    accumulator = 0;
     failureMessage = '';
     running = false;
     updateUi(true);
@@ -1857,19 +2152,20 @@ h3{font-size:1.02rem;margin-bottom:0}
       state.calibrationLearnedPwm = 0;
       state.laps = 0; state.time = 0; state.trail = [];
       state.lapCounter.reset();
-    } else if (state.calibrationStage >= 3) state.calibrationStage = 0;
+    } else if (state.calibrationStage >= (controlMode === 'reference1000' ? 3 : 5)) state.calibrationStage = 0;
     state.calibrated = false;
     state.calibrationElapsed = 0; state.calibrationStageElapsed = 0;
     state.calibrationNoProgress = 0; state.calibrationLossTime = 0;
     state.calibrationProtection = {position:null, speed:0}; state.calibrationPredicted = null;
     state.calibrationStableTime = 0; state.calibrationAtMaxSince = null;
+    state.calibrationAcquired = continuing && state.calibrationStage > 0;
     state.calibrationPwmWorking = Math.min(params.calibrationPwm, params.calibrationPwmMax);
     state.phase = 'calibrating';
     state.controlElapsed = 0;
     state.reading = senseLine();
     state.calibrationProgressPosition = state.reading.positionM;
     state.calibrationLastPosition = state.reading.positionM;
-    running = true; failureMessage = ''; lastFrameMs = 0;
+    running = true; failureMessage = '';
     updateUi(true); render();
     return true;
   }
@@ -1878,7 +2174,14 @@ h3{font-size:1.02rem;margin-bottom:0}
     if (replay) return false;
     if (state.phase === 'running') pauseRobot('Recolocado: pulsa Reanudar cuando exista una lectura estimable.');
     if (state.phase === 'calibrating') enterFault('Barrido interrumpido para recolocar. Pulsa Continuar calibración.');
-    Object.assign(state, {x:1.125, y:0.150, heading:0, vx:0, vy:0, omega:0, pitch:0, motorL:0, motorR:0});
+    const direction = controlMode === 'reference1000' || params.trackDirection >= 0 ? 1 : -1;
+    Object.assign(state, {x:direction > 0 ? 1.125 : 1.475, y:0.150,
+      heading:direction > 0 ? 0 : Math.PI, vx:0, vy:0, omega:0, pitch:0, motorL:0, motorR:0});
+    if (direction !== state.trackDirection) {
+      state.lapCounter = globalThis.LapCounter.create({trackLengthMm, direction, maxStepMm:120});
+      state.laps = 0; state.lastLapSeconds = null;
+      state.trackDirection = direction;
+    }
     stopDrive();
     state.progressInterrupted = true; state.progressMm = 0; state.lapStartedAt = state.time;
     state.lapCounter.invalidate(state.time, 'recolocado');
@@ -1917,7 +2220,6 @@ h3{font-size:1.02rem;margin-bottom:0}
     state.yawCommand = 0;
     failureMessage = '';
     running = true;
-    lastFrameMs = 0;
     updateUi(true);
     return true;
   }
@@ -2046,6 +2348,7 @@ h3{font-size:1.02rem;margin-bottom:0}
   }
 
   function updateUi(force = false) {
+    simulationClock.setRunning(running, performance.now());
     const status = $('statusBadge');
     let label = state.phase === 'idle' ? 'Esperando calibración' : 'Lista: pulsa BOOT';
     let tone = '';
@@ -2097,7 +2400,11 @@ h3{font-size:1.02rem;margin-bottom:0}
       ? `Línea detectada. Error lateral: ${numberFormat.format(state.reading.positionM * 1000)} mm.`
       : `Lectura rechazada: ${state.reading?.reason || 'sin lectura'}. No equivale necesariamente a ausencia de negro.`;
     if (state.phase === 'calibrating') {
-      note = `Barrido simplificado ${state.calibrationStage + 1}/3, PWM ${Math.round(state.calibrationPwmWorking)}. Canales con rango ≥60: ${state.calibration.validCount}/16.`;
+      const stageNames = ['Adquirir y centrar', 'Barrer izquierda', 'Barrer derecha', 'Volver al centro', 'Centrado normalizado'];
+      const stage = controlMode === 'reference1000'
+        ? `Barrido histórico ${state.calibrationStage + 1}/3`
+        : stageNames[state.calibrationStage] || 'Calibrando';
+      note = `${stage}, PWM ${Math.round(state.calibrationPwmWorking)}. Canales con rango ≥60: ${state.calibration.validCount}/16.`;
     } else if (state.phase === 'ready') {
       note = `Calibración conservada para esta sesión. Pulsa BOOT para iniciar; las pausas no la repiten.`;
     }
@@ -2115,6 +2422,24 @@ h3{font-size:1.02rem;margin-bottom:0}
         : 'Calibración lista. Iniciar y reanudar aceptan cualquier posición estimable de la regleta; pausar conserva rangos. El grupo ancho se registra sin detener.';
     }
     $('readout').textContent = note;
+    const measured = fidelity.snapshot();
+    const pair = (a,b,unit='') => a === null || b === null ? '—' :
+      `${numberFormat.format(a)} / ${numberFormat.format(b)}${unit}`;
+    $('compareLap').textContent = state.lastLapSeconds === null ? 'Sin vuelta completa' :
+      `${numberFormat.format(state.lastLapSeconds)} s · ${state.laps} vueltas`;
+    $('compareError').textContent = pair(measured.medianAbsoluteErrorMm, measured.p95AbsoluteErrorMm, ' mm');
+    $('comparePwm').textContent = pair(measured.medianPwmLeft, measured.medianPwmRight);
+    $('compareGroup').textContent = pair(measured.medianActiveGroup, measured.p95ActiveGroup);
+    $('comparisonStatus').textContent = `${measured.samples} lecturas de esta sesión simulada; ${measured.invalidSamples} inválidas. ` +
+      'Se compara el resultado, no se impone una vuelta de diez segundos. La anchura óptica todavía difiere de las muestras físicas.';
+    $('comparisonStatus').dataset.tone = measured.samples ? 'warning' : '';
+    const clock = simulationClock.snapshot();
+    $('clockStatus').textContent = clock.suspended ? 'Suspendido mientras la pestaña está oculta.' :
+      `${numberFormat.format(clock.simulatedSeconds)} s calculados / ${numberFormat.format(clock.activeWallSeconds)} s de reloj activo. ` +
+      (clock.backlogSeconds > .1 ? `Retraso del navegador: ${numberFormat.format(clock.backlogSeconds)} s; no se cambia la velocidad física.` :
+        'Paso físico fijo de 2 ms; sin cámara lenta intencional.') +
+      (clock.discardedActiveSeconds > .02 ? ` Interrupciones explícitas: ${numberFormat.format(clock.discardedActiveSeconds)} s sin simular.` : '');
+    $('clockStatus').dataset.tone = clock.backlogSeconds > .1 ? 'warning' : '';
     updateSensorPanel();
     if (replay) {
       status.textContent = 'Reproducción de CSV';
@@ -2122,24 +2447,19 @@ h3{font-size:1.02rem;margin-bottom:0}
       // values from the paused model visible as if they belonged to the CSV.
       for (const id of ['timeValue', 'speedValue', 'slipValue', 'pitchValue']) $(id).textContent = '—';
       $('readout').textContent = 'Datos físicos: consulta los tiempos y PWM debajo de la regleta. Velocidad, derrape, cabeceo y posición X/Y no están medidos en este CSV.';
+      for (const id of ['compareLap','compareError','comparePwm','compareGroup']) $(id).textContent = '—';
+      $('comparisonStatus').textContent = 'Reproducción local: no se confunden estos datos con un recorrido del modelo. Las referencias físicas de la tabla corresponden al ensayo analizado del 24 de septiembre.';
+      $('clockStatus').textContent = 'Simulación detenida para consultar el CSV físico.';
       $('canvasOverlay').hidden = false;
       $('canvasOverlay').textContent = 'Pista congelada: el CSV sólo muestra lecturas, no la posición real del carro.';
     }
   }
 
   function loop(frameMs) {
-    if (!lastFrameMs) lastFrameMs = frameMs;
-    const frameSeconds = Math.min(0.05, Math.max(0, (frameMs - lastFrameMs) / 1000));
-    lastFrameMs = frameMs;
-    if (running) {
-      accumulator = Math.min(0.05, accumulator + frameSeconds);
-      while (accumulator >= STEP) {
-        updatePhysics(STEP);
-        accumulator -= STEP;
-        if (!running) break;
-      }
-      render();
-    }
+    const now = performance.now();
+    simulationClock.setRunning(running, now);
+    const clock = simulationClock.tick(now, dt => {updatePhysics(dt); return running;});
+    if (clock.stepsLastFrame) render();
     if (frameMs - lastUiMs > 120) {
       lastUiMs = frameMs;
       updateUi();
@@ -2239,6 +2559,7 @@ h3{font-size:1.02rem;margin-bottom:0}
   }
 
   function saveSettings() {
+    syncPlantUi();
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ params, bounds,
       controlMode, advancedMotorRpm })); }
     catch (_) { /* almacenamiento no disponible en algunos archivos locales */ }
@@ -2275,6 +2596,17 @@ h3{font-size:1.02rem;margin-bottom:0}
       }
       $(`range-${key}`).closest('.parameter').dataset.disabled = String(disabled);
     }
+    syncPlantUi();
+  }
+
+  function syncPlantUi() {
+    const reduced = controlMode !== 'reference1000' && params.motorLaw >= 1.5;
+    for (const key of ['motorTau','effectiveGain','effectiveMotorTau','effectiveBrakeTau','effectiveBodyTau','effectiveAccelMax','effectiveBrakeMax']) {
+      const disabled = key === 'motorTau' ? reduced : !reduced;
+      if (!$(`range-${key}`)) continue;
+      for (const kind of ['range','min','value','max']) $(`${kind}-${key}`).disabled = disabled;
+      $(`range-${key}`).closest('.parameter').dataset.disabled = String(disabled);
+    }
   }
 
   function changeMode(nextMode) {
@@ -2305,6 +2637,7 @@ h3{font-size:1.02rem;margin-bottom:0}
       advancedMotorRpm = 3000;
     }
     for (const [key, def] of definitions) {
+      if (['slippery', 'lift', 'bias'].includes(name) && !(key in selected)) continue;
       const desired = selected[key] ?? def.value;
       if (desired > bounds[key].max) bounds[key].max = desired;
       if (desired < bounds[key].min) bounds[key].min = desired;
@@ -2373,6 +2706,10 @@ h3{font-size:1.02rem;margin-bottom:0}
       resetState();
     });
     new ResizeObserver(resizeCanvas).observe(canvas);
+    document.addEventListener('visibilitychange', () => {
+      simulationClock.setSuspended(document.hidden, performance.now());
+      updateUi(true);
+    });
     resetState();
     requestAnimationFrame(loop);
 
@@ -2382,6 +2719,8 @@ h3{font-size:1.02rem;margin-bottom:0}
       get params() { return params; },
       get controlMode() { return controlMode; },
       get running() { return running; },
+      get clock() { return simulationClock.snapshot(); },
+      get fidelity() { return fidelity.snapshot(); },
       get trackLengthMm() { return trackLengthMm; },
       senseLine, resetState, step: updatePhysics, updateLap, changeMode,
       pressBoot, startCalibration, repositionRobot, updateController, pauseRobot, updateUi,
