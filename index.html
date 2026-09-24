@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#101b2c">
-  <meta name="simulator-version" content="fisica-v65-20260924">
+  <meta name="simulator-version" content="fase2-v7-20260924">
   <meta name="description" content="Simulador ajustable del seguidor de línea sobre la pista impresa de 180 × 120 cm.">
   <title>Seguidor de línea · simulador físico</title>
   <style>
@@ -88,7 +88,7 @@ h3{font-size:1.02rem;margin-bottom:0}
   <main class="app-shell">
     <header class="topbar">
       <div>
-        <p class="eyebrow">CONTROL BÁSICO · SIMULADOR V6.5</p>
+        <p class="eyebrow">CONTROL BÁSICO · FASE 2 V7</p>
         <h1>Seguidor de línea</h1>
         <p class="subtitle">Prueba velocidad, agarre y geometría en la misma pista de 180 × 120 cm que imprimiste.</p>
       </div>
@@ -112,13 +112,14 @@ h3{font-size:1.02rem;margin-bottom:0}
       <div class="controller-choice">
         <label for="controllerMode">Control que se simula</label>
         <select id="controllerMode">
-          <option value="advanced3000">Adquisición v6.3 · motor 3000 RPM</option>
+          <option value="advanced3000">Adquisición · motor 3000 RPM · fases 1 y 2</option>
           <option value="reference1000">Referencia 1000 RPM</option>
         </select>
       </div>
-      <p class="mode-explanation" id="modeExplanation">ADC y calibración por canal; los grupos anchos y errores laterales se observan, no detienen por sí solos. La dinámica y el movimiento de calibración siguen siendo modelos aproximados.</p>
+      <p class="mode-explanation" id="modeExplanation">Fase 2: mayor avance y corrección PD amortiguada. Candidato para la próxima prueba física, todavía no validado en el carro.</p>
+      <p class="simulation-note">En «Código», elige perfil 1 para comparar con la primera fase o perfil 2 para el candidato nuevo. La física y los sensores son los mismos al cambiar de perfil.</p>
       <details class="sensor-details"><summary>Cómo se ajustó la respuesta física</summary>
-        <p class="mode-explanation">La planta nueva separa la fuerza necesaria para arrancar, la respuesta al PWM durante la marcha y la respuesta al cortar o invertir la orden. Se contrastó con la calibración a PWM 70 y con las vueltas del video, manteniendo el controlador. Los tiempos de respuesta son ajustes efectivos del modelo, no mediciones independientes de cada motor. En el selector, 0 conserva la fórmula histórica, 1 la primera hipótesis proporcional y 2 el modelo nuevo que se abre por defecto.</p>
+        <p class="mode-explanation">Se conserva la planta física v6.5, contrastada con PWM 70 de calibración y las vueltas del video de la primera fase. Fase 2 cambia el controlador, no el agarre, los sensores ni el reloj para mejorar los resultados. Los tiempos de respuesta son ajustes efectivos, no mediciones independientes de cada motor. El selector físico «ley del motor» 0/1/2 es distinto del selector de perfil de código 1/2.</p>
       </details>
 
       <div class="playback-row">
@@ -158,7 +159,7 @@ h3{font-size:1.02rem;margin-bottom:0}
       </div>
       <div class="comparison-scroll">
         <table class="sensor-table comparison-table">
-          <thead><tr><th>Medida</th><th>Físico</th><th>Esta simulación</th></tr></thead>
+          <thead><tr><th>Medida</th><th>Físico · fase 1</th><th>Esta simulación</th></tr></thead>
           <tbody>
             <tr><td>Vuelta completa</td><td>≈ 9–10 s en video</td><td id="compareLap">Sin vuelta completa</td></tr>
             <tr><td>Error absoluto · mediana / p95</td><td>14,8 / 33,6 mm</td><td id="compareError">—</td></tr>
@@ -169,7 +170,7 @@ h3{font-size:1.02rem;margin-bottom:0}
       </div>
       <p class="simulation-note" id="comparisonStatus">Se comparan resultados; estas cifras no conducen el robot ni fijan el cronómetro.</p>
       <details class="sensor-details"><summary>Alcance de la comparación</summary>
-        <p class="mode-explanation">Las estadísticas físicas corresponden a 14 533 muestras en marcha. El video da una referencia aproximada, con incertidumbre cercana a un segundo, y no está sincronizado con el CSV. p95 significa que el 95 % de las lecturas queda por debajo de ese valor. Se excluye la salida final donde faltaba madera: no representa una pista con soporte continuo. Igualar el tiempo no demuestra por sí solo que sensores, giro y fricción sean fieles.</p>
+        <p class="mode-explanation">Las estadísticas físicas corresponden a 14 533 muestras en marcha de la fase 1; todavía no hay mediciones reales de la fase 2. El video da una referencia aproximada, con incertidumbre cercana a un segundo, y no está sincronizado con el CSV. p95 significa que el 95 % de las lecturas queda por debajo de ese valor. Se excluye la salida final donde faltaba madera: no representa una pista con soporte continuo. Igualar el tiempo no demuestra por sí solo que sensores, giro y fricción sean fieles.</p>
       </details>
     </section>
 
@@ -180,7 +181,7 @@ h3{font-size:1.02rem;margin-bottom:0}
       </div>
       <p id="sensorSummary" class="readout" aria-live="polite"></p>
       <div id="sensorBars" class="sensor-bars" aria-label="Intensidades normalizadas de los 16 sensores"></div>
-      <p class="simulation-note">Naranja: grupo elegido. Gris y ×: rango insuficiente. Adquisición v6.3 conserva los grupos anchos como estimaciones ambiguas. El rechazo por anchura sólo se muestra al reproducir versiones históricas.</p>
+      <p class="simulation-note">Naranja: grupo elegido. Gris y ×: rango insuficiente. Las fases 1 y 2 conservan los grupos anchos como estimaciones ambiguas. El rechazo por anchura sólo se muestra al reproducir versiones históricas.</p>
       <details class="sensor-details"><summary>ADC, rango y valor de cada sensor</summary>
         <table class="sensor-table"><thead><tr><th>Sensor</th><th>ADC</th><th>Rango</th><th>Normalizado</th></tr></thead><tbody id="sensorTableBody"></tbody></table>
       </details>
@@ -367,6 +368,8 @@ h3{font-size:1.02rem;margin-bottom:0}
 
   function firmwarePolicy(firmware = '') {
     const version = String(firmware).trim();
+    if (/^Seguidor_v7_Fase2_WiFi$/i.test(version))
+      return {id:'acquisition', label:'adquisición fase 2 v7', comparable:true, assumed:false};
     if (/v6[._-]3(?:$|[_\s.-])|adquisicion-v63/i.test(version))
       return {id:'acquisition', label:'adquisición v6.3', comparable:true, assumed:false};
     if (/v6(?:[._-][012])?(?:$|[_\s.-])/i.test(version))
@@ -1065,8 +1068,21 @@ h3{font-size:1.02rem;margin-bottom:0}
   const GRAVITY = 9.81;
   // Clave nueva: evita que ajustes antiguos (850/220, Kp 320) oculten el
   // perfil v4 robusto cuando el usuario abre la actualización.
-  const STORAGE_KEY = 'seguidor-linea-web-planta-v65-20260924';
+  const STORAGE_KEY = 'seguidor-linea-web-fase2-v7-20260924';
   const numberFormat = new Intl.NumberFormat('es-CO', { maximumFractionDigits: 2 });
+
+  const controlProfiles = Object.freeze({
+    1: Object.freeze({straightRpm:334, curveRpm:180, startRpm:300, kp:122.5, kd:1.54,
+      pivotEntryMm:24, pivotExitMm:24, postPivotMs:160, yawSlewRate:140,
+      urgentYawSlew:350, positionFilterMs:8, derivativeFilterMs:20,
+      maxYawRate:20, pivotMinYaw:3.15, pwmFloor:46, firmwareRpmScale:1950,
+      accelLimit:2, brakeLimit:10, lateralLimit:4, controlPeriod:8}),
+    2: Object.freeze({straightRpm:400, curveRpm:216, startRpm:300, kp:122.5, kd:3.2,
+      pivotEntryMm:24, pivotExitMm:20, postPivotMs:80, yawSlewRate:100,
+      urgentYawSlew:250, positionFilterMs:8, derivativeFilterMs:20,
+      maxYawRate:20, pivotMinYaw:3.15, pwmFloor:46, firmwareRpmScale:1950,
+      accelLimit:2, brakeLimit:10, lateralLimit:4, controlPeriod:8}),
+  });
 
   const groups = [
     {
@@ -1087,6 +1103,13 @@ h3{font-size:1.02rem;margin-bottom:0}
         { key: 'firmwareRpmScale', label: 'Escala RPM del código', unit: 'RPM', value: 1950, min: 100, max: 5000, step: 10, hardMax: 20000, help: 'Estimación fija del firmware: 3000 × 5/6 × 0,78. Cambiar voltaje físico no cambia esta conversión PWM.' },
         { key: 'calibrationPwm', label: 'PWM inicial de calibración', unit: '/255', value: 70, min: 0, max: 160, step: 1, hardMax: 255, help: 'La v4 inicia aquí y aumenta por pasos cuando no detecta movimiento.' },
         { key: 'calibrationPwmMax', label: 'PWM máximo de calibración', unit: '/255', value: 110, min: 0, max: 200, step: 1, hardMax: 255, help: 'Límite de la búsqueda automática de fuerza durante el encendido.' },
+        { key: 'phaseProfile', label: 'Perfil: 1 Fase 1 · 2 Fase 2', unit: '', value: 2, min: 1, max: 2, step: 1, hardMax: 2, hardMin: 1, help: 'Fase 1 conserva el control anterior. Fase 2 sube órdenes de recta/curva un 20 % y modifica amortiguación/rampas. Cambiar de perfil pausa y conserva los rangos; no cambia física ni calibración.' },
+        { key: 'pivotEntryMm', label: 'Entrada a pivote', unit: 'mm', value: 24, min: 10, max: 40, step: 1, hardMax: 45, help: 'Exige además lectura válida y actividad en sensores extremos.' },
+        { key: 'pivotExitMm', label: 'Salida de pivote', unit: 'mm', value: 24, min: 5, max: 35, step: 1, hardMax: 45, help: 'Sale al volver hacia el centro o si deja de estar activo el extremo.' },
+        { key: 'postPivotMs', label: 'Recuperación tras pivote', unit: 'ms', value: 160, min: 0, max: 300, step: 10, hardMax: 1000, help: 'Tiempo de velocidad baja y bloqueo de nueva entrada tras un pivote.' },
+        { key: 'urgentYawSlew', label: 'Rampa de giro urgente', unit: 'rad/s²', value: 350, min: 20, max: 500, step: 10, hardMax: 2000, help: 'Orden angular en borde/pivote; no cambia respuesta física de los motores.' },
+        { key: 'positionFilterMs', label: 'Filtro de posición', unit: 'ms', value: 8, min: 0, max: 40, step: 1, hardMax: 1000, help: 'Filtro del código, distinto del periodo ADC que sigue siendo 8 ms.' },
+        { key: 'derivativeFilterMs', label: 'Filtro de derivada', unit: 'ms', value: 20, min: 0, max: 80, step: 1, hardMax: 1000, help: 'Suaviza la derivada del error en el PD.' },
       ],
     },
     {
@@ -1139,6 +1162,10 @@ h3{font-size:1.02rem;margin-bottom:0}
   groups[0].items.push(...groups[1].items.filter(item => codeLimits.has(item.key)));
   groups[1].items = groups[1].items.filter(item => !codeLimits.has(item.key));
   for (const group of groups) for (const item of group.items) {
+    if (Object.hasOwn(controlProfiles[2], item.key)) {
+      item.value = controlProfiles[2][item.key];
+      item.help = `Valor inicial del perfil Fase 2: ${item.value} ${item.unit}. El perfil Fase 1 restaura su valor anterior; editarlo cambia código, no física.`;
+    }
     if (['wheelRadius', 'wheelBase', 'sensorPitch', 'heightFalloff', 'mass', 'yawInertia', 'firmwareRpmScale'].includes(item.key))
       item.hardMin = item.min;
   }
@@ -1167,6 +1194,9 @@ h3{font-size:1.02rem;margin-bottom:0}
     'effectiveGain', 'effectiveMotorTau', 'effectiveBrakeTau', 'effectiveBodyTau',
     'effectiveAccelMax', 'effectiveBrakeMax',
     'trackDirection',
+    'pivotEntryMm', 'pivotExitMm', 'postPivotMs', 'urgentYawSlew',
+    'positionFilterMs', 'derivativeFilterMs',
+    'phaseProfile',
   ]);
   let controlMode = 'advanced3000';
   let advancedMotorRpm = 3000;
@@ -1742,7 +1772,7 @@ h3{font-size:1.02rem;margin-bottom:0}
 
     if (reading.valid) {
       state.lossTime = 0;
-      const posAlpha = dt / (0.008 + dt);
+      const posAlpha = dt / (params.positionFilterMs / 1000 + dt);
       state.positionFilter += posAlpha * (reading.positionM - state.positionFilter);
       const magnitude = Math.abs(state.positionFilter);
       const position = magnitude <= 0.0025 ? 0 :
@@ -1753,21 +1783,23 @@ h3{font-size:1.02rem;margin-bottom:0}
       }
       state.firstReading = false;
       state.prevPosition = position;
-      state.dFilter += dt / (0.020 + dt) * (dRaw - state.dFilter);
+      state.dFilter += dt / (params.derivativeFilterMs / 1000 + dt) * (dRaw - state.dFilter);
       if (Math.abs(position) > 0.001) state.lastDirection = Math.sign(position);
 
       targetYaw = clamp(params.kp * position + params.kd * state.dFilter,
         -params.maxYawRate, params.maxYawRate);
-      let postPivotBraking = state.time < state.postPivotUntil;
+      // Firmware compares integer milliseconds; do not extend a deadline
+      // one control tick because of floating-point accumulation in seconds.
+      let postPivotBraking = state.time + 1e-9 < state.postPivotUntil;
       if (state.urgentPivotDirection === 0 &&
           !postPivotBraking &&
-          Math.abs(reading.positionM) >= 0.024 && reading.extremeActive) {
+          Math.abs(reading.positionM) >= params.pivotEntryMm / 1000 && reading.extremeActive) {
         state.urgentPivotDirection = reading.positionM < 0 ? -1 : 1;
       } else if (state.urgentPivotDirection !== 0 &&
                  (!reading.extremeActive ||
-                  Math.abs(reading.positionM) <= 0.024)) {
+                  Math.abs(reading.positionM) <= params.pivotExitMm / 1000)) {
         state.urgentPivotDirection = 0;
-        state.postPivotUntil = state.time + 0.160;
+        state.postPivotUntil = state.time + params.postPivotMs / 1000;
         postPivotBraking = true;
       }
       const urgentPivot = state.urgentPivotDirection !== 0;
@@ -1797,9 +1829,9 @@ h3{font-size:1.02rem;margin-bottom:0}
 
     updateLongitudinal(targetSpeed, dt);
     const urgentSlew = (state.urgentPivotDirection !== 0 ||
-      state.time < state.postPivotUntil ||
+      state.time + 1e-9 < state.postPivotUntil ||
       Math.abs(state.reading?.positionM || 0) >= 0.020)
-      ? Math.max(params.yawSlewRate, 350) : params.yawSlewRate;
+      ? Math.max(params.yawSlewRate, params.urgentYawSlew) : params.yawSlewRate;
     state.yawCommand = moveToward(state.yawCommand, targetYaw,
       urgentSlew * dt);
     const wheelBaseM = params.wheelBase / 1000;
@@ -2510,12 +2542,14 @@ h3{font-size:1.02rem;margin-bottom:0}
     for (const def of definitions.values()) {
       syncControl(def.key);
       $(`range-${def.key}`).addEventListener('input', (event) => {
+        if (def.key === 'phaseProfile') { applyControlProfile(Number(event.target.value)); return; }
         params[def.key] = Number(event.target.value);
         syncControl(def.key);
         saveSettings();
       });
       $(`value-${def.key}`).addEventListener('change', (event) => {
         const value = Number(event.target.value);
+        if (def.key === 'phaseProfile') { applyControlProfile(value); return; }
         if (Number.isFinite(value)) params[def.key] = clamp(value,
           bounds[def.key].min, bounds[def.key].max);
         syncControl(def.key);
@@ -2539,6 +2573,26 @@ h3{font-size:1.02rem;margin-bottom:0}
         });
       }
     }
+  }
+
+  function applyControlProfile(profileId) {
+    const id = Math.round(profileId);
+    if (!controlProfiles[id] || controlMode === 'reference1000' || replay) return false;
+    if (state.phase === 'calibrating') {
+      syncControl('phaseProfile');
+      return false;
+    }
+    if (state.phase === 'running') pauseRobot('Perfil cambiado. La calibración se conserva; pulsa BOOT para iniciar con el nuevo control.');
+    Object.assign(params, controlProfiles[id], {phaseProfile:id});
+    for (const key of [...Object.keys(controlProfiles[id]), 'phaseProfile']) {
+      bounds[key].min = Math.min(bounds[key].min, params[key]);
+      bounds[key].max = Math.max(bounds[key].max, params[key]);
+      syncControl(key);
+    }
+    saveSettings();
+    syncModeUi();
+    updateUi(true);
+    return true;
   }
 
   function syncControl(key) {
@@ -2588,7 +2642,7 @@ h3{font-size:1.02rem;margin-bottom:0}
     $('controllerMode').value = controlMode;
     $('modeExplanation').textContent = controlMode === 'reference1000'
       ? 'Referencia histórica de 1000 RPM: lógica PID/PWM conservada. Su entrada sigue siendo reflectancia ideal, no la normalización v6.2. El .ino original no cambia.'
-      : 'Adquisición v6.3: conserva grupos anchos y posiciones fuera de la hipótesis anterior, sin detener por anchura ni por error lateral. La señal insuficiente mantiene una pausa provisional a 24 ms. Motor nominal 3000 RPM; calibración y dinámica aproximadas, sin gestor progresivo completo.';
+      : `Fase ${params.phaseProfile === 1 ? '1 conservada' : '2 candidata'} · motor nominal 3000 RPM. ${params.phaseProfile === 1 ? 'Perfil anterior: órdenes 334/180 RPM.' : 'Órdenes 400/216 RPM y mayor amortiguación: mejora comprobada en el modelo, pendiente de medir en el carro.'} Se conservan ADC de 8 ms, piso de arranque y pausa provisional a 24 ms sin señal. Calibración y física siguen siendo aproximadas.`;
     for (const key of advancedOnlyControls) {
       const disabled = controlMode === 'reference1000';
       for (const kind of ['range', 'min', 'value', 'max']) {
@@ -2607,6 +2661,8 @@ h3{font-size:1.02rem;margin-bottom:0}
       for (const kind of ['range','min','value','max']) $(`${kind}-${key}`).disabled = disabled;
       $(`range-${key}`).closest('.parameter').dataset.disabled = String(disabled);
     }
+    // This is a two-choice profile selector, not a rescalable physical knob.
+    for (const kind of ['min', 'max']) $(`${kind}-phaseProfile`).disabled = true;
   }
 
   function changeMode(nextMode) {
@@ -2726,7 +2782,7 @@ h3{font-size:1.02rem;margin-bottom:0}
       pressBoot, startCalibration, repositionRobot, updateController, pauseRobot, updateUi,
       calibrationPrediction, updateCalibrationController,
       get replay() { return replay; },
-      rpmCommandToPwm, pwmToMotorRpm,
+      rpmCommandToPwm, pwmToMotorRpm, applyControlProfile, controlProfiles,
       setParam(key, value) {
         if (!definitions.has(key)) throw new Error('Parámetro desconocido');
         params[key] = value;
