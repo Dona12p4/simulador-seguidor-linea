@@ -1,13 +1,15 @@
 # Simulador web del seguidor de línea
 
-Página estática para celular sobre la pista impresa de 180 × 120 cm y línea de 18 mm. La interfaz permite variar velocidad, control, agarre, motores, elevación de la nariz, geometría y sensores.
+Página para celular sobre la pista impresa de 180 × 120 cm, línea de 18 mm y regleta de 16 sensores.
 
-Incluye dos modos: referencia histórica para motor nominal de 1000 RPM y procesamiento de sensores/paradas alineado con el firmware v6.2 para motor nominal de 3000 RPM. No ejecuta `.ino` en el navegador. Los originales del firmware no se modificaron.
+La política de adquisición v6.3 acepta grupos amplios sin detenerse únicamente por superar siete sensores o por error lateral mayor de 35 mm. Calcula el centroide candidato, identifica la ambigüedad y permite iniciar/reanudar con señal estimable fuera de la antigua zona central de ±15 mm.
 
-La actualización separa ADC, calibración min/max e intensidades normalizadas de los 16 canales. Conserva el rechazo de grupos mayores de siete, pausa a 24 ms de lectura inválida o 80 ms con error mayor de 35 mm y permite reanudar centrado sin recalibrar. La escala PWM del código queda separada del voltaje físico ajustable.
+Conserva el corte cuando no hay señal suficiente y rechaza todos los ADC simultáneamente saturados en cero o 4095. El procesamiento, los rangos y estas protecciones son decisiones del software; no son especificaciones físicas identificadas por los CSV.
 
-En «Qué lee la regleta» se puede abrir un CSV físico para inspeccionar ADC, rangos, intensidades y motivo de rechazo. Los archivos se procesan localmente en el navegador, sin enviarse al sitio. Las 1509 muestras calibradas del registro de comprobación coincidieron en validez con el detector trasladado. No se publican las muestras ni se reconstruyen mínimos ausentes o coordenadas X/Y.
+Se mantiene por separado la referencia histórica de 1000 RPM. El modo actual usa motor nominal de 3000 RPM y no ejecuta el archivo Arduino en el navegador. Los originales físicos no se modificaron.
 
-El derrape, tiempo de vuelta y cabeceo son resultados de un modelo reducido con parámetros aún no calibrados físicamente. No deben tratarse como predicciones garantizadas del robot real.
+«Qué lee la regleta» permite abrir CSV locales y comparar cada registro con la política de su firmware. Los datos v6.2 conservan su interpretación histórica, y se muestra la diferencia con adquisición. Sin firmware se declara la suposición histórica; una versión desconocida no se compara. Datos sin calibrar no se tratan como intensidades calibradas.
 
-El movimiento de calibración y la dinámica siguen simplificados; no se portaron todas las fases de calibración, el gestor progresivo, la huella de pista ni Wi-Fi. La entrada óptica de la referencia 1000 RPM es ideal. La transferencia sintética ADC=500+3000×reflectancia es una hipótesis, no una curva identificada.
+Los CSV no se suben ni se incluyen en esta publicación. No se reconstruyen mínimos/máximos ausentes ni posición X/Y. El movimiento de calibración, motores, agarre, inercia y cabeceo siguen siendo aproximaciones. Tampoco se porta íntegramente el gestor progresivo, la huella de pista ni Wi-Fi del firmware.
+
+Verificación de esta revisión: 18 grupos de pruebas del detector y 21 comprobaciones de navegador, incluida compatibilidad histórica y móvil.

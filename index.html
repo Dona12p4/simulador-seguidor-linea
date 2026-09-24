@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#101b2c">
-  <meta name="simulator-version" content="sensores-v62-20260924">
+  <meta name="simulator-version" content="adquisicion-v63-20260924">
   <meta name="description" content="Simulador ajustable del seguidor de línea sobre la pista impresa de 180 × 120 cm.">
   <title>Seguidor de línea · simulador físico</title>
   <style>
@@ -82,7 +82,7 @@ h3{font-size:1.02rem;margin-bottom:0}
   <main class="app-shell">
     <header class="topbar">
       <div>
-        <p class="eyebrow">CONTROL BÁSICO · LECTURA DE SENSORES V6.2</p>
+        <p class="eyebrow">CONTROL BÁSICO · ADQUISICIÓN V6.3</p>
         <h1>Seguidor de línea</h1>
         <p class="subtitle">Prueba velocidad, agarre y geometría en la misma pista de 180 × 120 cm que imprimiste.</p>
       </div>
@@ -106,11 +106,11 @@ h3{font-size:1.02rem;margin-bottom:0}
       <div class="controller-choice">
         <label for="controllerMode">Control que se simula</label>
         <select id="controllerMode">
-          <option value="advanced3000">Lectura v6.2 · motor 3000 RPM</option>
+          <option value="advanced3000">Adquisición v6.3 · motor 3000 RPM</option>
           <option value="reference1000">Referencia 1000 RPM</option>
         </select>
       </div>
-      <p class="mode-explanation" id="modeExplanation">ADC, calibración por canal y rechazo de lectura como en v6.2. La dinámica y el movimiento de calibración siguen siendo modelos aproximados.</p>
+      <p class="mode-explanation" id="modeExplanation">ADC y calibración por canal; los grupos anchos y errores laterales se observan, no detienen por sí solos. La dinámica y el movimiento de calibración siguen siendo modelos aproximados.</p>
 
       <div class="playback-row">
         <div class="button-group">
@@ -150,7 +150,7 @@ h3{font-size:1.02rem;margin-bottom:0}
       </div>
       <p id="sensorSummary" class="readout" aria-live="polite"></p>
       <div id="sensorBars" class="sensor-bars" aria-label="Intensidades normalizadas de los 16 sensores"></div>
-      <p class="simulation-note">Naranja: grupo elegido. Gris y ×: rango insuficiente. Una señal negra puede existir y aun así ser rechazada por su anchura.</p>
+      <p class="simulation-note">Naranja: grupo elegido. Gris y ×: rango insuficiente. Adquisición v6.3 conserva los grupos anchos como estimaciones ambiguas. El rechazo por anchura sólo se muestra al reproducir versiones históricas.</p>
       <details class="sensor-details"><summary>ADC, rango y valor de cada sensor</summary>
         <table class="sensor-table"><thead><tr><th>Sensor</th><th>ADC</th><th>Rango</th><th>Normalizado</th></tr></thead><tbody id="sensorTableBody"></tbody></table>
       </details>
@@ -198,7 +198,8 @@ h3{font-size:1.02rem;margin-bottom:0}
       <h2 id="assumptionsTitle">Una prueba aproximada, no una predicción garantizada</h2>
       <p>La línea y sus medidas son las del archivo vectorial usado para imprimir la pista: 180 × 120 cm y trazo de 18 mm. El robot parte de radio de rueda 10 mm, separación de 120 mm y regleta curva de 16 sensores adelantada entre 160 y 175 mm.</p>
       <p>El derrape, la respuesta del motor y la elevación de la nariz se calculan con un modelo reducido en 2D. Aún no se han medido el coeficiente de fricción, la inercia, el centro de masa ni las RPM bajo carga del robot físico. Los valores superiores a la velocidad estimada con 5 V y carga son escenarios hipotéticos, no velocidad confirmada.</p>
-      <p>La lectura v6.2 separa ADC (0–4095), mínimos y máximos por canal, intensidad (0–1000) y grupo contiguo elegido. Un rango menor de 60 se ignora. El ensayo pausa tras 24 ms sin lectura válida o 80 ms con error mayor de 35 mm. Reanudar exige línea válida dentro de ±15 mm; no recalibra ni acredita una vuelta interrumpida.</p>
+      <p>La adquisición v6.3 separa ADC (0–4095), mínimos y máximos por canal, intensidad (0–1000) y grupo contiguo elegido. Un rango menor de 60 se ignora. Acepta grupos de 1–16 sensores con señal suficiente: más de 7 se anota como anchura observada, sin detener ni descartar su posición ponderada. Tampoco se detiene por superar 35 mm. Iniciar y reanudar aceptan cualquier posición estimable; no recalibran ni acreditan una vuelta interrumpida.</p>
+      <p>Se conserva el corte inmediato cuando falta señal suficiente y una pausa tras 24 ms. Pico 230 y suma 420 son umbrales provisionales del software, no una prueba infalible de presencia o ausencia de línea. Los 16 ADC saturados exactamente en 0 o todos en 4095 no producen una posición estimable. La calibración provisional conserva sus requisitos de contraste y mínimo de dos canales. El botón BOOT permite pausar manualmente. Cada fila CSV se compara con la política de su firmware; sin versión se indica una política histórica supuesta.</p>
       <p>Calibrar inicia un barrido simplificado y recoge mínimos y máximos; no reproduce todas las fases, temporizaciones y pulsos del firmware. La medición óptica sintética, el agarre y la dinámica no están identificados por el CSV. La reproducción de CSV muestra las intensidades guardadas, sin inventar mínimos/máximos ausentes ni posición X/Y.</p>
       <p>La transferencia óptica usada en el modelo es ADC = 500 + 3000 × reflectancia, limitada a 0–4095. Es una hipótesis ajustable por contraste, altura y ruido, no una curva medida. El archivo físico permite comprobar el procesamiento de lecturas, no validar todavía esa transferencia ni una vuelta simulada.</p>
       <p>El modo «Referencia exitosa» reproduce la lógica del firmware físico protegido de 1000 RPM: umbrales de 16 sensores, centroide, PID, velocidad PWM variable, pivote y búsqueda. No ejecuta código Arduino dentro del navegador. El archivo original no se modifica.</p>
@@ -211,7 +212,7 @@ h3{font-size:1.02rem;margin-bottom:0}
 
   <script>
 /*
- * Sensor processing translated from Seguidor_v6_2_Control_WiFi.
+ * Acquisition v6.3 plus the historical v6.2 detector for CSV comparisons.
  * All arrays here are PHYSICAL left-to-right order (sensor 1 ... sensor 16),
  * as exported by the firmware CSV. Do not reverse those CSV arrays again.
  * This module does not model optics, motor dynamics, Wi-Fi, or lap matching.
@@ -281,7 +282,7 @@ h3{font-size:1.02rem;margin-bottom:0}
     return { groupStart, activeGroup, sum };
   }
 
-  function detect(input, pitchMm = constants.pitchMm) {
+  function detectByPolicy(input, pitchMm, allowWide) {
     const strengths = integers16(input, 'strengths', 0, 1000);
     const pitchM = checkPitch(pitchMm);
     const weights = strengths.map((value) => Math.max(0, value - constants.noiseFloor));
@@ -299,17 +300,49 @@ h3{font-size:1.02rem;margin-bottom:0}
       if (k <= 1 || k >= 14) extremeActive = true;
     }
     const reason = group.activeGroup === 0 ? 'sin_grupo' :
-      group.activeGroup > constants.groupMax ? 'grupo_ancho' :
+      (!allowWide && group.activeGroup > constants.groupMax) ? 'grupo_ancho' :
       peak < constants.peakMin ? 'pico_bajo' :
-      group.sum < constants.strengthMin ? 'fuerza_baja' : 'valida';
-    const valid = reason === 'valida';
+      group.sum < constants.strengthMin ? 'fuerza_baja' :
+      group.activeGroup > constants.groupMax ? 'grupo_ancho_observado' : 'valida';
+    const valid = reason === 'valida' || reason === 'grupo_ancho_observado';
     return {
       valid, positionM: valid ? clamp(positionSum / group.sum, -7.5 * pitchM, 7.5 * pitchM) : 0,
       effectiveLeadM: valid ? leadSum / group.sum : 0.1675,
       peak, sum: group.sum, strengths,
       activeGroup: group.activeGroup, groupStart: group.groupStart,
-      extremeActive, reason,
+      extremeActive, reason, ambiguous: valid && group.activeGroup > constants.groupMax,
     };
+  }
+
+  // Width outside the old hypothesis is data, not absence of a signal.
+  function detect(input, pitchMm = constants.pitchMm, raw = null) {
+    const reading = detectByPolicy(input, pitchMm, true);
+    if (raw !== null) {
+      const adc = integers16(raw, 'raw', 0, constants.adcMax);
+      if (adc.every(v => v === 0) || adc.every(v => v === constants.adcMax))
+        return {...reading, valid:false, positionM:0, reason:'adc_saturado_uniforme', ambiguous:true};
+    }
+    return reading;
+  }
+  function detectLegacy(input, pitchMm = constants.pitchMm) {
+    return detectByPolicy(input, pitchMm, false);
+  }
+
+  function firmwarePolicy(firmware = '') {
+    const version = String(firmware).trim();
+    if (/v6[._-]3(?:$|[_\s.-])|adquisicion-v63/i.test(version))
+      return {id:'acquisition', label:'adquisición v6.3', comparable:true, assumed:false};
+    if (/v6(?:[._-][012])?(?:$|[_\s.-])/i.test(version))
+      return {id:'legacy', label:'detector histórico v6.2', comparable:true, assumed:false};
+    if (!version)
+      return {id:'legacy', label:'histórico supuesto: CSV sin firmware', comparable:true, assumed:true};
+    return {id:'unknown', label:'firmware desconocido: comparación suspendida', comparable:false, assumed:false};
+  }
+
+  function detectForFirmware(input, firmware = '', pitchMm = constants.pitchMm, raw = null) {
+    const policy = firmwarePolicy(firmware);
+    const reading = policy.id === 'acquisition' ? detect(input, pitchMm, raw) : detectLegacy(input, pitchMm);
+    return {...reading, policy};
   }
 
   function provisional(raw, pitchMm = constants.pitchMm, { blackHigh = true } = {}) {
@@ -323,7 +356,7 @@ h3{font-size:1.02rem;margin-bottom:0}
     const weights = deltas.map((value) => Math.max(1, value - threshold));
     const group = strongestGroup(deltas.map((value) => value >= threshold), weights);
     const valid = contrast >= constants.calibrationContrastMin &&
-      group.activeGroup >= 2 && group.activeGroup <= constants.groupMax && group.sum > 0;
+      group.activeGroup >= 2 && group.sum > 0;
     let weighted = 0;
     for (let k = group.groupStart; k < group.groupStart + group.activeGroup; k++) {
       weighted += (k - 7.5) * pitchM * weights[k];
@@ -332,6 +365,7 @@ h3{font-size:1.02rem;margin-bottom:0}
       valid, positionM: valid ? clamp(weighted / group.sum, -7.5 * pitchM, 7.5 * pitchM) : 0,
       contrast, background, threshold,
       activeGroup: group.activeGroup, groupStart: group.groupStart, sum: group.sum,
+      ambiguous: valid && group.activeGroup > constants.groupMax,
     };
   }
 
@@ -363,7 +397,7 @@ h3{font-size:1.02rem;margin-bottom:0}
   // These are the TWO recoverable reading limits in EnsayoProgresivo::sample.
   // Full firmware also checks clock freshness, session duration and capacity.
   // Call once per actual control sample, and reset explicitly upon resuming.
-  function updateGuard(guard, reading, dtUs) {
+  function updateGuardLegacy(guard, reading, dtUs) {
     if (!Number.isFinite(dtUs) || !Number.isInteger(dtUs) || dtUs <= 0) {
       throw new RangeError('dtUs must be a positive integer');
     }
@@ -390,9 +424,31 @@ h3{font-size:1.02rem;margin-bottom:0}
     return next;
   }
 
+  // Acquisition guard: no lateral-position stop and no width stop. A weak or
+  // absent signal still cuts drive immediately in app.js; 24 ms pauses it.
+  // The thresholds are provisional software criteria, not physical certainty.
+  function updateGuard(guard, reading, dtUs) {
+    if (!Number.isFinite(dtUs) || !Number.isInteger(dtUs) || dtUs <= 0)
+      throw new RangeError('dtUs must be a positive integer');
+    const next = {...guard, lateralUs:0};
+    if (next.paused) return next;
+    if (reading.valid) {
+      if (!Number.isFinite(reading.positionM)) throw new RangeError('Valid reading requires finite positionM');
+      next.invalidUs = 0;
+    } else {
+      next.invalidUs += dtUs;
+      if (next.invalidUs >= constants.invalidStopUs) {
+        next.paused = true;
+        next.reason = 'Señal insuficiente durante 24 ms según umbrales provisionales; recoloque y reanude';
+      }
+    }
+    return next;
+  }
+
   root.LineSensorModel = Object.freeze({
-    constants, normalize, detect, provisional, createCalibration, accumulateCalibration,
-    createGuard, trialGuard: createGuard, updateGuard,
+    constants, normalize, detect, detectLegacy, detectForFirmware, firmwarePolicy,
+    provisional, createCalibration, accumulateCalibration,
+    createGuard, trialGuard: createGuard, updateGuard, updateGuardLegacy,
   });
 })(globalThis);
 
@@ -486,7 +542,7 @@ h3{font-size:1.02rem;margin-bottom:0}
   const GRAVITY = 9.81;
   // Clave nueva: evita que ajustes antiguos (850/220, Kp 320) oculten el
   // perfil v4 robusto cuando el usuario abre la actualización.
-  const STORAGE_KEY = 'seguidor-linea-web-sensores-v62-20260924';
+  const STORAGE_KEY = 'seguidor-linea-web-adquisicion-v63-20260924';
   const numberFormat = new Intl.NumberFormat('es-CO', { maximumFractionDigits: 2 });
 
   const groups = [
@@ -719,7 +775,8 @@ h3{font-size:1.02rem;margin-bottom:0}
     const normalized = sensors.normalize(raw, state.calibration.min, state.calibration.max);
     const provisional = !state.calibrated;
     const measurement = provisional ? sensors.provisional(raw, params.sensorPitch) :
-      sensors.detect(controlMode === 'reference1000' ? opticalStrengths.map(Math.round) : normalized.strengths, params.sensorPitch);
+      (controlMode === 'reference1000' ? sensors.detectLegacy(opticalStrengths.map(Math.round), params.sensorPitch) :
+        sensors.detect(normalized.strengths, params.sensorPitch, raw));
     const reading = {...measurement, raw, ranges: normalized.ranges,
       strengths: provisional ? normalized.strengths : measurement.strengths,
       validCount: normalized.validCount, provisional, sensorHeightMm,
@@ -1414,7 +1471,7 @@ h3{font-size:1.02rem;margin-bottom:0}
 
   function repositionRobot() {
     if (replay) return false;
-    if (state.phase === 'running') pauseRobot('Recolocado: pulsa Reanudar cuando la lectura esté centrada.');
+    if (state.phase === 'running') pauseRobot('Recolocado: pulsa Reanudar cuando exista una lectura estimable.');
     if (state.phase === 'calibrating') enterFault('Barrido interrumpido para recolocar. Pulsa Continuar calibración.');
     Object.assign(state, {x:1.125, y:0.150, heading:0, vx:0, vy:0, omega:0, pitch:0, motorL:0, motorR:0});
     stopDrive();
@@ -1434,8 +1491,8 @@ h3{font-size:1.02rem;margin-bottom:0}
     }
     const reading = senseLine();
     state.reading = reading;
-    if (!reading.valid || (controlMode === 'advanced3000' && Math.abs(reading.positionM) > 0.015)) {
-      failureMessage = 'BOOT no inicia: centra la regleta sobre la línea. La calibración se conserva.';
+    if (!reading.valid) {
+      failureMessage = 'BOOT no inicia: no hay señal suficiente según los umbrales provisionales. Recoloca la regleta; la calibración se conserva.';
       state.phase = 'paused';
       updateUi(true);
       return false;
@@ -1461,6 +1518,8 @@ h3{font-size:1.02rem;margin-bottom:0}
 
   const reasonText = {
     valida:'válida', grupo_ancho:'grupo demasiado ancho', sin_grupo:'sin grupo detectable',
+    grupo_ancho_observado:'grupo ancho observado: estimación ambigua, no se detiene por anchura',
+    adc_saturado_uniforme:'16 ADC saturados en el mismo extremo: sin posición estimable',
     pico_bajo:'pico insuficiente', fuerza_baja:'suma insuficiente',
     calibracion_provisional:'detector provisional de calibración'
   };
@@ -1468,7 +1527,7 @@ h3{font-size:1.02rem;margin-bottom:0}
   function updateSensorPanel() {
     if (!$('sensorBars').children.length) return;
     const row = replay?.[replayIndex];
-    const r = row ? {...sensors.detect(row.strengths), raw:row.raw, ranges:row.ranges,
+    const r = row ? {...sensors.detectForFirmware(row.strengths, row.firmware, 6.1, row.raw), raw:row.raw, ranges:row.ranges,
       validCount:row.ranges.filter(x => x >= 60).length, provisional:!row.calibrated} : state.reading;
     if (!r) return;
     $('sensorOrigin').textContent = row ? 'CSV físico local' :
@@ -1482,7 +1541,14 @@ h3{font-size:1.02rem;margin-bottom:0}
       const retained = row ? (row.recordedError === '' ? null : Number(row.recordedError)) : state.lastValidPosition;
       const position = r.valid ? `Posición ${numberFormat.format(r.positionM * 1000)} mm.` :
         `Sin posición nueva.${Number.isFinite(retained) ? ` Última/registrada: ${numberFormat.format(retained * 1000)} mm (puede ser retenida).` : ''}`;
-      summary = `${reasonText[r.reason] || r.reason}. Grupo ${r.activeGroup} (máximo 7), pico ${r.peak}, fuerza ${r.sum}. Rangos suficientes: ${r.validCount}/16. ${position}`;
+      const acquisition = row ? sensors.detect(row.strengths, 6.1, row.raw) : r;
+      const old = sensors.detectLegacy(r.strengths);
+      const width = r.policy?.id === 'legacy' ? '(límite histórico 7)' :
+        r.policy?.id === 'unknown' ? '(visualización histórica; firmware desconocido)' : '(1–16; la anchura no detiene)';
+      summary = `${reasonText[r.reason] || r.reason}. Grupo ${r.activeGroup} ${width}, pico ${r.peak}, fuerza ${r.sum}. Rangos suficientes: ${r.validCount}/16. ${position}`;
+      if (r.policy) summary += ` Política: ${r.policy.label}.`;
+      if (old.reason === 'grupo_ancho' && acquisition.valid)
+        summary += ` En adquisición v6.3 se conserva el grupo ancho y su posición ponderada (${numberFormat.format(acquisition.positionM * 1000)} mm); el detector antiguo lo rechazaría. No se reescribe la muestra histórica.`;
     }
     $('sensorSummary').textContent = summary;
     for (let i = 0; i < 16; i++) {
@@ -1501,7 +1567,9 @@ h3{font-size:1.02rem;margin-bottom:0}
       $('replayIndex').value = replayIndex;
       $('replayPrevious').disabled = replayIndex === 0;
       $('replayNext').disabled = replayIndex === replay.length - 1;
-      const comparison = row.calibrated ? (row.recordedValid === r.valid ? 'Coincide con la validez registrada.' : 'Difiere de la validez registrada; revisar firmware.') : 'Sin comparación durante calibración.';
+      const comparison = !row.calibrated ? 'Sin comparación durante calibración.' :
+        !r.policy.comparable ? 'Sin comparación: firmware no reconocido.' :
+        `${row.recordedValid === r.valid ? 'Coincide con la validez registrada bajo esta política.' : 'Diferencia bajo la política seleccionada; verifique versión y configuración del registro.'}${r.policy.assumed ? ' Política histórica supuesta porque falta firmware.' : ''}`;
       $('replayMeta').textContent = `Fila ${row.row}, secuencia ${row.seq}, arranque ${row.bootId}. Estado ${row.state}. PWM izq/der: ${row.leftPwm || '—'} / ${row.rightPwm || '—'}. ${comparison} ${row.trialReason || row.recordedReason || ''}`;
     }
   }
@@ -1527,11 +1595,16 @@ h3{font-size:1.02rem;margin-bottom:0}
         running = false;
         replay = imported;
         replayIndex = Math.max(0, imported.findIndex(r => r.calibrated));
-        let compared = 0, mismatch = 0;
+        let compared = 0, mismatch = 0, assumed = 0, unknown = 0, legacyCount = 0, acquisitionCount = 0;
         for (const r of imported) if (r.calibrated) {
-          compared++; if (sensors.detect(r.strengths).valid !== r.recordedValid) mismatch++;
+          const reading = sensors.detectForFirmware(r.strengths, r.firmware, 6.1, r.raw);
+          if (!reading.policy.comparable) { unknown++; continue; }
+          compared++;
+          if (reading.policy.assumed) assumed++;
+          if (reading.policy.id === 'legacy') legacyCount++; else acquisitionCount++;
+          if (reading.valid !== r.recordedValid) mismatch++;
         }
-        $('csvStatus').textContent = `${file.name}: ${imported.length} muestras. ${compared} calibradas comparadas, ${mismatch} diferencias de validez. Archivo procesado localmente; no se subió. La posición del dibujo no corresponde al CSV.`;
+        $('csvStatus').textContent = `${file.name}: ${imported.length} muestras. ${compared} calibradas comparadas, ${mismatch} diferencias de validez. Detector histórico: ${legacyCount}; adquisición v6.3: ${acquisitionCount}; sin versión (política histórica supuesta): ${assumed}; versión desconocida sin comparar: ${unknown}. Archivo procesado localmente; no se subió. La posición del dibujo no corresponde al CSV.`;
         $('replayNavigation').hidden = false;
         $('replayIndex').max = imported.length - 1;
         updateUi(true); render();
@@ -1541,7 +1614,7 @@ h3{font-size:1.02rem;margin-bottom:0}
     $('replayPrevious').addEventListener('click', () => { replayIndex = Math.max(0, replayIndex - 1); updateUi(true); });
     $('replayNext').addEventListener('click', () => { replayIndex = Math.min(replay.length - 1, replayIndex + 1); updateUi(true); });
     $('replayFirstReject').addEventListener('click', () => {
-      const index = replay.findIndex(r => r.calibrated && r.state === 'CORRIENDO' && !sensors.detect(r.strengths).valid);
+      const index = replay.findIndex(r => r.calibrated && r.state === 'CORRIENDO' && !sensors.detectForFirmware(r.strengths, r.firmware, 6.1, r.raw).valid);
       if (index >= 0) { replayIndex = index; updateUi(true); }
       else $('csvStatus').textContent = 'El archivo no contiene una lectura normalizada rechazada durante CORRIENDO.';
     });
@@ -1619,7 +1692,7 @@ h3{font-size:1.02rem;margin-bottom:0}
     if (force && state.phase === 'ready') {
       note = controlMode === 'reference1000'
         ? 'Calibración lista. Referencia de 1000 RPM: 16 sensores, centroide, PID y PWM original.'
-        : 'Calibración lista. Iniciar y reanudar exigen línea válida dentro de ±15 mm; pausar conserva rangos.';
+        : 'Calibración lista. Iniciar y reanudar aceptan cualquier posición estimable de la regleta; pausar conserva rangos. El grupo ancho se registra sin detener.';
     }
     $('readout').textContent = note;
     updateSensorPanel();
@@ -1771,7 +1844,7 @@ h3{font-size:1.02rem;margin-bottom:0}
     $('controllerMode').value = controlMode;
     $('modeExplanation').textContent = controlMode === 'reference1000'
       ? 'Referencia histórica de 1000 RPM: lógica PID/PWM conservada. Su entrada sigue siendo reflectancia ideal, no la normalización v6.2. El .ino original no cambia.'
-      : 'Detector y paradas del ensayo alineados con v6.2: ADC, rangos por canal y lectura ambigua. Motor nominal 3000 RPM; movimiento de calibración y dinámica aproximados, sin gestor progresivo completo.';
+      : 'Adquisición v6.3: conserva grupos anchos y posiciones fuera de la hipótesis anterior, sin detener por anchura ni por error lateral. La señal insuficiente mantiene una pausa provisional a 24 ms. Motor nominal 3000 RPM; calibración y dinámica aproximadas, sin gestor progresivo completo.';
     for (const key of advancedOnlyControls) {
       const disabled = controlMode === 'reference1000';
       for (const kind of ['range', 'min', 'value', 'max']) {
