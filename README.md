@@ -1,5 +1,9 @@
 # Simulador del seguidor · Fase 2 v7
 
+Modelo histórico de septiembre de 2026, anterior al PID directo en PWM y al firmware v7.10. No reproduce el comportamiento actual del robot. Esta revisión sólo aclara la interfaz y permite revisar `Telemetria.csv` unificado: filtra los registros de muestra sin tratarlos como posiciones X/Y ni ajustar la física. Los metadatos y eventos se cuentan, pero no se presentan como lecturas de sensores. También acepta los CSV anteriores de sólo muestras.
+
+## Control y validación históricos
+
 Pista impresa de 180 × 120 cm, línea de 18 mm, regleta curva de 16 sensores y motor nominal de 3000 RPM.
 
 Esta revisión abre con el **perfil de código 2**: consigna de recta 400/curva 216, Kp 122,5 y Kd 3,2, salida del pivote a 20 mm, retención posterior 80 ms y rampas de giro 100/250 rad/s². El arranque sigue en 300. Las consignas internas de RPM no son mediciones del robot.

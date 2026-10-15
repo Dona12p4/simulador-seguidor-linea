@@ -116,8 +116,9 @@ h3{font-size:1.02rem;margin-bottom:0}
           <option value="reference1000">Referencia 1000 RPM</option>
         </select>
       </div>
-      <p class="mode-explanation" id="modeExplanation">Fase 2: mayor avance y corrección PD amortiguada. Candidato para la próxima prueba física, todavía no validado en el carro.</p>
-      <p class="simulation-note">En «Código», elige perfil 1 para comparar con la primera fase o perfil 2 para el candidato nuevo. La física y los sensores son los mismos al cambiar de perfil.</p>
+      <p class="mode-explanation" id="modelVersionNote">Modelo de ensayo de septiembre. No incorpora el último firmware ni reproduce el comportamiento actual del robot.</p>
+      <p class="mode-explanation" id="modeExplanation">Fase 2 histórica: mayor avance y corrección PD amortiguada.</p>
+      <p class="simulation-note">En «Código», elige perfil 1 o 2 para comparar los controles de septiembre. La física y los sensores son los mismos al cambiar de perfil.</p>
       <details class="sensor-details"><summary>Cómo se ajustó la respuesta física</summary>
         <p class="mode-explanation">Se conserva la planta física v6.5, contrastada con PWM 70 de calibración y las vueltas del video de la primera fase. Fase 2 cambia el controlador, no el agarre, los sensores ni el reloj para mejorar los resultados. Los tiempos de respuesta son ajustes efectivos, no mediciones independientes de cada motor. El selector físico «ley del motor» 0/1/2 es distinto del selector de perfil de código 1/2.</p>
       </details>
@@ -170,7 +171,7 @@ h3{font-size:1.02rem;margin-bottom:0}
       </div>
       <p class="simulation-note" id="comparisonStatus">Se comparan resultados; estas cifras no conducen el robot ni fijan el cronómetro.</p>
       <details class="sensor-details"><summary>Alcance de la comparación</summary>
-        <p class="mode-explanation">Las estadísticas físicas corresponden a 14 533 muestras en marcha de la fase 1; todavía no hay mediciones reales de la fase 2. El video da una referencia aproximada, con incertidumbre cercana a un segundo, y no está sincronizado con el CSV. p95 significa que el 95 % de las lecturas queda por debajo de ese valor. Se excluye la salida final donde faltaba madera: no representa una pista con soporte continuo. Igualar el tiempo no demuestra por sí solo que sensores, giro y fricción sean fieles.</p>
+        <p class="mode-explanation">Esta tabla conserva 14 533 muestras en marcha y el video de la fase 1 de septiembre; no incluye los últimos ensayos. El video da una referencia aproximada, con incertidumbre cercana a un segundo, y no está sincronizado con el CSV. p95 significa que el 95 % de las lecturas queda por debajo de ese valor. Se excluye la salida final donde faltaba madera. Igualar el tiempo no demuestra por sí solo que sensores, giro y fricción sean fieles.</p>
       </details>
     </section>
 
@@ -181,14 +182,15 @@ h3{font-size:1.02rem;margin-bottom:0}
       </div>
       <p id="sensorSummary" class="readout" aria-live="polite"></p>
       <div id="sensorBars" class="sensor-bars" aria-label="Intensidades normalizadas de los 16 sensores"></div>
-      <p class="simulation-note">Naranja: grupo elegido. Gris y ×: rango insuficiente. Las fases 1 y 2 conservan los grupos anchos como estimaciones ambiguas. El rechazo por anchura sólo se muestra al reproducir versiones históricas.</p>
+      <p class="simulation-note">Altura: intensidad de 0 a 1000. En archivos recientes se muestran las lecturas guardadas. Sólo en el modelo y los formatos históricos compatibles se indica el grupo elegido en naranja y el rango insuficiente con ×.</p>
       <details class="sensor-details"><summary>ADC, rango y valor de cada sensor</summary>
         <table class="sensor-table"><thead><tr><th>Sensor</th><th>ADC</th><th>Rango</th><th>Normalizado</th></tr></thead><tbody id="sensorTableBody"></tbody></table>
       </details>
       <div class="replay-controls">
-        <label for="csvFile">Abrir muestras físicas (CSV, sólo en este navegador)</label>
+        <label for="csvFile">Revisar Telemetria.csv del robot</label>
         <input id="csvFile" type="file" accept=".csv,text/csv">
-        <p id="csvStatus" role="status">No hay archivo cargado. Importar detiene la simulación; no reconstruye la posición del carro ni cambia la fricción.</p>
+        <p>Muestra sensores, error y órdenes PWM, lectura por lectura. No reconstruye el recorrido del carro ni ajusta la simulación. El archivo se abre sólo en este navegador.</p>
+        <p id="csvStatus" role="status">No hay archivo cargado. Al abrirlo se pausa el modelo para revisar las muestras.</p>
         <div id="replayNavigation" hidden>
           <p id="replaySession" class="readout"></p>
           <p id="replayTiming" class="readout"></p>
@@ -230,18 +232,6 @@ h3{font-size:1.02rem;margin-bottom:0}
       <div id="parameterGroups"></div>
     </section>
 
-    <section class="assumptions" aria-labelledby="assumptionsTitle">
-      <p class="section-kicker">QUÉ REPRESENTA</p>
-      <h2 id="assumptionsTitle">Una prueba aproximada, no una predicción garantizada</h2>
-      <p>V6.5 ajusta la respuesta efectiva al PWM y al frenado con las observaciones disponibles. Distingue tiempo acumulado, intervalo abierto y vuelta completa. El contador virtual exige recorrido neto y cierre: oscilar o recuperar la línea no regala vueltas. El CSV físico no mueve al robot dibujado ni permite localizarlo de forma absoluta; una huella repetida en una pista simétrica no basta para saber en qué mitad está.</p>
-      <p>La línea y sus medidas son las del archivo vectorial usado para imprimir la pista: 180 × 120 cm y trazo de 18 mm. El robot parte de radio de rueda 10 mm, separación de 120 mm y regleta curva de 16 sensores adelantada entre 160 y 175 mm.</p>
-      <p>El derrape, la respuesta del motor y la elevación de la nariz se calculan con un modelo reducido en 2D. La respuesta temporal se ajustó, pero aún no se han medido por separado el coeficiente de fricción, la inercia, el centro de masa ni las RPM bajo carga del robot físico. Una vuelta parecida no identifica esos parámetros. Se supone apoyo continuo bajo las ruedas: el tamaño del papel no garantiza que la madera sostenga todo el carro, y esta versión no simula la caída por falta de soporte.</p>
-      <p>La adquisición v6.3 separa ADC (0–4095), mínimos y máximos por canal, intensidad (0–1000) y grupo contiguo elegido. Un rango menor de 60 se ignora. Acepta grupos de 1–16 sensores con señal suficiente: más de 7 se anota como anchura observada, sin detener ni descartar su posición ponderada. Tampoco se detiene por superar 35 mm. Iniciar y reanudar aceptan cualquier posición estimable; no recalibran ni acreditan una vuelta interrumpida.</p>
-      <p>Se conserva el corte inmediato cuando falta señal suficiente y una pausa tras 24 ms. Pico 230 y suma 420 son umbrales provisionales del software, no una prueba infalible de presencia o ausencia de línea. Los 16 ADC saturados exactamente en 0 o todos en 4095 no producen una posición estimable. La calibración provisional conserva sus requisitos de contraste y mínimo de dos canales. El botón BOOT permite pausar manualmente. Cada fila CSV se compara con la política de su firmware; sin versión se indica una política histórica supuesta.</p>
-      <p>En adquisición, Calibrar recoge mínimos y máximos con pulsos de 35/16 ms por ciclo de 50 ms y protección predictiva de 40 ms, trasladados del firmware. Primero adquiere la línea, barre ambos lados y termina con centrado normalizado; no se cargan rangos ideales para hacer pasar el barrido. La referencia de 1000 RPM conserva su barrido anterior. El sondeo de signo y la recuperación siguen simplificados; no ejecuta íntegramente el archivo Arduino. La reproducción de CSV muestra las intensidades guardadas, sin inventar mínimos/máximos ausentes ni posición X/Y.</p>
-      <p>La transferencia óptica usada en el modelo es ADC = 500 + 3000 × reflectancia, limitada a 0–4095. Es una hipótesis ajustable por contraste, altura y ruido, no una curva medida. El archivo físico permite comprobar el procesamiento de lecturas, no validar todavía esa transferencia ni una vuelta simulada.</p>
-      <p>El modo «Referencia exitosa» reproduce la lógica del firmware físico protegido de 1000 RPM: umbrales de 16 sensores, centroide, PID, velocidad PWM variable, pivote y búsqueda. No ejecuta código Arduino dentro del navegador. El archivo original no se modifica.</p>
-    </section>
   </main>
 
   <svg id="trackGeometry" width="0" height="0" viewBox="0 0 1800 1200" aria-hidden="true" focusable="false">
@@ -523,7 +513,7 @@ h3{font-size:1.02rem;margin-bottom:0}
   function parse(text) {
     const rows = parseRows(text);
     if (rows.length < 2) throw new Error('El CSV no contiene muestras.');
-    if (rows.length > 90001) throw new Error('Máximo 90.000 muestras por archivo.');
+    if (rows.length > 200001) throw new Error('Máximo 200.000 registros por archivo.');
     const header = rows.shift();
     const columns = new Map(header.map((s, i) => [s.trim(), i]));
     if (columns.size !== header.length) throw new Error('Hay columnas duplicadas.');
@@ -531,8 +521,18 @@ h3{font-size:1.02rem;margin-bottom:0}
       ...Array.from({length:16}, (_, i) => i + 1).flatMap(i =>
         [`adc_raw_${i}`, `sensor_norm_${i}`, `rango_cal_${i}`])];
     for (const name of required) if (!columns.has(name)) throw new Error(`Falta la columna ${name}.`);
-    return rows.map((row, index) => {
+    // El formato unificado contiene también metadatos y eventos. Conservar el
+    // índice original antes de filtrar mantiene las filas de los diagnósticos.
+    const recordCounts = Object.create(null);
+    const entries = rows.map((row, index) => {
       if (row.length !== header.length) throw new Error(`Fila ${index + 2}: número de columnas incorrecto.`);
+      const type = columns.has('tipo_registro') ? row[columns.get('tipo_registro')].trim().toLowerCase() : 'muestra';
+      recordCounts[type] = (recordCounts[type] || 0) + 1;
+      return {row, index, type};
+    }).filter(entry => entry.type === 'muestra');
+    if (!entries.length) throw new Error('El CSV no contiene registros de muestra.');
+    if (entries.length > 90000) throw new Error('Máximo 90.000 muestras por archivo.');
+    const samples = entries.map(({row, index}) => {
       const get = key => columns.has(key) ? row[columns.get(key)] : '';
       const numeric = (key, max) => {
         const value = get(key).trim(); const n = Number(value);
@@ -562,6 +562,8 @@ h3{font-size:1.02rem;margin-bottom:0}
         commandMessage: get('command_message'),
         firmware: get('firmware'), row: index + 2 };
     });
+    Object.defineProperty(samples, 'recordCounts', {value: Object.freeze(recordCounts)});
+    return samples;
   }
   function summarize(rows) {
     let runs = 0, runningRows = 0, uniformNormalizedRows = 0, confirmedRows = 0;
@@ -2267,7 +2269,10 @@ h3{font-size:1.02rem;margin-bottom:0}
   function updateSensorPanel() {
     if (!$('sensorBars').children.length) return;
     const row = replay?.[replayIndex];
-    const r = row ? {...sensors.detectForFirmware(row.strengths, row.firmware, 6.1, row.raw), raw:row.raw, ranges:row.ranges,
+    const policy = row ? sensors.firmwarePolicy(row.firmware) : null;
+    const recordedOnly = row && !policy.comparable;
+    const r = row ? {...(recordedOnly ? {strengths:row.strengths, policy, groupStart:-1, activeGroup:0} :
+      sensors.detectForFirmware(row.strengths, row.firmware, 6.1, row.raw)), raw:row.raw, ranges:row.ranges,
       validCount:row.ranges.filter(x => x >= 60).length, provisional:!row.calibrated} : state.reading;
     if (!r) return;
     $('sensorOrigin').textContent = row ? 'CSV físico local' :
@@ -2275,6 +2280,9 @@ h3{font-size:1.02rem;margin-bottom:0}
     let summary;
     if (row && !row.calibrated) {
       summary = 'Calibración en curso en el archivo: no se compara el detector normalizado con el provisional. Las intensidades son las guardadas, sin reconstruir min/max.';
+    } else if (recordedOnly) {
+      const error = row.recordedError === '' ? null : Number(row.recordedError);
+      summary = `Datos registrados por ${row.firmware}. Línea ${row.recordedValid ? 'válida' : 'no válida'} según el firmware. ${Number.isFinite(error) ? `Error registrado: ${numberFormat.format(error * 1000)} mm. ` : ''}Las barras muestran las 16 intensidades guardadas, sin recalcular grupo, validez ni error con el detector antiguo.`;
     } else if (r.provisional) {
       summary = `Lectura provisional ${r.valid ? 'válida' : 'rechazada'}: contraste ADC ${r.contrast ?? '—'}, grupo ${r.activeGroup}. Rangos suficientes: ${r.validCount}/16.`;
     } else {
@@ -2296,10 +2304,10 @@ h3{font-size:1.02rem;margin-bottom:0}
     for (let i = 0; i < 16; i++) {
       const channel = $('sensorBars').children[i];
       channel.dataset.chosen = String(i >= r.groupStart && i < r.groupStart + r.activeGroup);
-      channel.dataset.ignored = String(r.ranges[i] < 60);
+      channel.dataset.ignored = String(!recordedOnly && r.ranges[i] < 60);
       channel.querySelector('.sensor-fill').style.height = `${r.strengths[i] / 10}%`;
       channel.querySelector('.sensor-number').textContent = String(r.strengths[i]);
-      channel.querySelector('strong').textContent = `${i + 1}${r.ranges[i] < 60 ? ' ×' : ''}`;
+      channel.querySelector('strong').textContent = `${i + 1}${!recordedOnly && r.ranges[i] < 60 ? ' ×' : ''}`;
       const cells = $('sensorTableBody').children[i].children;
       cells[1].textContent = String(r.raw[i]); cells[2].textContent = String(r.ranges[i]);
       cells[3].textContent = String(r.strengths[i]);
@@ -2340,14 +2348,15 @@ h3{font-size:1.02rem;margin-bottom:0}
         replayIndex = Math.max(0, imported.findIndex(r => r.calibrated));
         let compared = 0, mismatch = 0, assumed = 0, unknown = 0, legacyCount = 0, acquisitionCount = 0;
         for (const r of imported) if (r.calibrated) {
+          if (!sensors.firmwarePolicy(r.firmware).comparable) { unknown++; continue; }
           const reading = sensors.detectForFirmware(r.strengths, r.firmware, 6.1, r.raw);
-          if (!reading.policy.comparable) { unknown++; continue; }
           compared++;
           if (reading.policy.assumed) assumed++;
           if (reading.policy.id === 'legacy') legacyCount++; else acquisitionCount++;
           if (reading.valid !== r.recordedValid) mismatch++;
         }
-        $('csvStatus').textContent = `${file.name}: ${imported.length} muestras. ${compared} calibradas comparadas, ${mismatch} diferencias de validez. Detector histórico: ${legacyCount}; adquisición v6.3: ${acquisitionCount}; sin versión (política histórica supuesta): ${assumed}; versión desconocida sin comparar: ${unknown}. Archivo procesado localmente; no se subió. La posición del dibujo no corresponde al CSV.`;
+        const omitted = Object.entries(imported.recordCounts).filter(([type]) => type !== 'muestra').reduce((sum, [, count]) => sum + count, 0);
+        $('csvStatus').textContent = `${file.name}: ${imported.length} muestras. Usa la barra o Anterior/Siguiente para revisar sensores, error y PWM. ${omitted ? `${omitted} registros adicionales (metadatos, eventos u otros) no se muestran como lecturas. ` : ''}${unknown ? `${unknown} muestras calibradas de firmware no comparable: se muestran los datos registrados sin aplicar el detector antiguo. ` : ''}${compared ? `Comparación del detector: ${compared} lecturas, ${mismatch} diferencias de validez (${legacyCount} históricas, ${acquisitionCount} de adquisición; ${assumed} sin versión, con política histórica supuesta). ` : ''}El archivo no se subió. La pista queda detenida: el CSV no contiene posición X/Y.`;
         const stats = csvReader.summarize(imported);
         $('replaySession').textContent = `${stats.runs} tandas observadas, ${stats.runningRows} muestras en marcha. ${stats.confirmedRows ? 'Hay filas con huella de vuelta confirmada por el firmware; no son un conteo independiente de vueltas.' : 'Ninguna vuelta completa confirmada en este archivo.'} ${stats.uniformNormalizedRows} muestras en marcha con los 16 normalizados al máximo: posición ambigua, no centrado demostrado. Los tiempos de intervalo no se usan para calcular velocidad ni fricción.`;
         const patternReport = globalThis.LinePatternPeriod.analyze(imported);
@@ -2474,7 +2483,7 @@ h3{font-size:1.02rem;margin-bottom:0}
     $('clockStatus').dataset.tone = clock.backlogSeconds > .1 ? 'warning' : '';
     updateSensorPanel();
     if (replay) {
-      status.textContent = 'Reproducción de CSV';
+      status.textContent = 'Revisión de telemetría';
       // These quantities are unknown in physical telemetry. Do not leave
       // values from the paused model visible as if they belonged to the CSV.
       for (const id of ['timeValue', 'speedValue', 'slipValue', 'pitchValue']) $(id).textContent = '—';
@@ -2642,7 +2651,7 @@ h3{font-size:1.02rem;margin-bottom:0}
     $('controllerMode').value = controlMode;
     $('modeExplanation').textContent = controlMode === 'reference1000'
       ? 'Referencia histórica de 1000 RPM: lógica PID/PWM conservada. Su entrada sigue siendo reflectancia ideal, no la normalización v6.2. El .ino original no cambia.'
-      : `Fase ${params.phaseProfile === 1 ? '1 conservada' : '2 candidata'} · motor nominal 3000 RPM. ${params.phaseProfile === 1 ? 'Perfil anterior: órdenes 334/180 RPM.' : 'Órdenes 400/216 RPM y mayor amortiguación: mejora comprobada en el modelo, pendiente de medir en el carro.'} Se conservan ADC de 8 ms, piso de arranque y pausa provisional a 24 ms sin señal. Calibración y física siguen siendo aproximadas.`;
+      : `Fase ${params.phaseProfile === 1 ? '1' : '2'} de septiembre · motor nominal 3000 RPM. ${params.phaseProfile === 1 ? 'Órdenes 334/180 RPM.' : 'Órdenes 400/216 RPM y corrección PD amortiguada.'} Control anterior al PID actual en PWM. La calibración y la física de este modelo siguen siendo aproximadas.`;
     for (const key of advancedOnlyControls) {
       const disabled = controlMode === 'reference1000';
       for (const kind of ['range', 'min', 'value', 'max']) {
