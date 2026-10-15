@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#101b2c">
-  <meta name="simulator-version" content="fase2-v7-20260924">
+  <meta name="simulator-version" content="pid-actual-v710-20261015">
   <meta name="description" content="Simulador ajustable del seguidor de línea sobre la pista impresa de 180 × 120 cm.">
   <title>Seguidor de línea · simulador físico</title>
   <style>
@@ -47,6 +47,7 @@ h3{font-size:1.02rem;margin-bottom:0}
 .preset-warning{margin:-5px 0 15px;padding:9px 12px;border-left:3px solid var(--amber);background:#fff8eb;color:#784a0a;font-size:.83rem}.preset-warning[hidden]{display:none}.parameter[data-disabled="true"]{opacity:.56}.parameter input:disabled{cursor:not-allowed}
 .parameter-group{border-top:1px solid var(--line);padding-top:2px}.parameter-group summary{list-style:none;display:flex;justify-content:space-between;align-items:center;min-height:54px;font-weight:800;cursor:pointer}.parameter-group summary::-webkit-details-marker{display:none}.parameter-group summary::after{content:"+";color:var(--teal);font-size:1.3rem}.parameter-group[open] summary::after{content:"−"}.parameter-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;padding:4px 0 22px}
 .parameter{border:1px solid #e4ebee;border-radius:11px;padding:13px;background:#fbfcfd;min-width:0}.parameter-heading{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:10px}.parameter-heading label{font-size:.85rem;font-weight:750}.parameter-heading output{font-variant-numeric:tabular-nums;font-weight:800;color:var(--teal);white-space:nowrap}
+.parameter[hidden]{display:none!important}
 .parameter input[type="range"]{display:block;width:100%;margin:3px 0 12px;accent-color:var(--teal);min-height:28px;touch-action:auto}.parameter-bottom{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}.parameter-bottom label{font-size:.69rem;color:var(--muted);font-weight:700;display:block}.parameter-bottom input{width:100%;min-width:0;padding:6px 7px;margin-top:3px;border:1px solid #cbd7dd;border-radius:7px;background:#fff;color:var(--ink);font-size:1rem;font-variant-numeric:tabular-nums}.parameter-help{font-size:.73rem;color:var(--muted);margin:9px 0 0;min-height:2em}
 .assumptions{margin-top:18px;padding:24px}.assumptions h2{margin-bottom:12px}.assumptions p:not(.section-kicker){font-size:.9rem;color:var(--muted);max-width:1000px;margin-bottom:11px}.assumptions p:last-child{margin-bottom:0}
 #trackGeometry{position:absolute;left:-10000px;pointer-events:none}
@@ -88,7 +89,7 @@ h3{font-size:1.02rem;margin-bottom:0}
   <main class="app-shell">
     <header class="topbar">
       <div>
-        <p class="eyebrow">CONTROL BÁSICO · FASE 2 V7</p>
+        <p class="eyebrow">CONTROL BÁSICO · PID ACTUAL</p>
         <h1>Seguidor de línea</h1>
         <p class="subtitle">Prueba velocidad, agarre y geometría en la misma pista de 180 × 120 cm que imprimiste.</p>
       </div>
@@ -112,15 +113,15 @@ h3{font-size:1.02rem;margin-bottom:0}
       <div class="controller-choice">
         <label for="controllerMode">Control que se simula</label>
         <select id="controllerMode">
-          <option value="advanced3000">Adquisición · motor 3000 RPM · fases 1 y 2</option>
+          <option value="advanced3000">Motor 3000 RPM · PID actual e históricos</option>
           <option value="reference1000">Referencia 1000 RPM</option>
         </select>
       </div>
-      <p class="mode-explanation" id="modelVersionNote">Modelo de ensayo de septiembre. No incorpora el último firmware ni reproduce el comportamiento actual del robot.</p>
+      <p class="mode-explanation" id="modelVersionNote">PID directo del firmware v7.10. La respuesta física sigue siendo un modelo efectivo contrastado con el video, no una medición completa del robot.</p>
       <p class="mode-explanation" id="modeExplanation">Fase 2 histórica: mayor avance y corrección PD amortiguada.</p>
-      <p class="simulation-note">En «Código», elige perfil 1 o 2 para comparar los controles de septiembre. La física y los sensores son los mismos al cambiar de perfil.</p>
+      <p class="simulation-note">El perfil 3 usa el PID actual y factor 1,50. Los perfiles 1 y 2 conservan los controles de septiembre. Cambiar de perfil no cambia la física.</p>
       <details class="sensor-details"><summary>Cómo se ajustó la respuesta física</summary>
-        <p class="mode-explanation">Se conserva la planta física v6.5, contrastada con PWM 70 de calibración y las vueltas del video de la primera fase. Fase 2 cambia el controlador, no el agarre, los sensores ni el reloj para mejorar los resultados. Los tiempos de respuesta son ajustes efectivos, no mediciones independientes de cada motor. El selector físico «ley del motor» 0/1/2 es distinto del selector de perfil de código 1/2.</p>
+        <p class="mode-explanation">El controlador actual entrega PWM directamente: no convierte sus órdenes a las RPM internas de septiembre. Se ajustó únicamente la ganancia motriz efectiva de 1,00 a 0,90 para contrastar velocidad y suavidad con las vueltas de 3,86–3,91 s del video de octubre. No es una ganancia medida ni identifica por separado fricción y motor. Geometría, óptica, masa, agarre y respuestas dinámicas conservan sus valores anteriores. No se acelera el reloj ni se guía el robot mediante la trayectoria conocida: el control sólo recibe los 16 sensores virtuales.</p>
       </details>
 
       <div class="playback-row">
@@ -160,18 +161,18 @@ h3{font-size:1.02rem;margin-bottom:0}
       </div>
       <div class="comparison-scroll">
         <table class="sensor-table comparison-table">
-          <thead><tr><th>Medida</th><th>Físico · fase 1</th><th>Esta simulación</th></tr></thead>
+          <thead><tr><th>Medida</th><th>Físico · octubre</th><th>Esta simulación</th></tr></thead>
           <tbody>
-            <tr><td>Vuelta completa</td><td>≈ 9–10 s en video</td><td id="compareLap">Sin vuelta completa</td></tr>
-            <tr><td>Error absoluto · mediana / p95</td><td>14,8 / 33,6 mm</td><td id="compareError">—</td></tr>
-            <tr><td>PWM mediano · izquierdo / derecho</td><td>60 / 78</td><td id="comparePwm">—</td></tr>
-            <tr><td>Sensores del grupo · mediana / p95</td><td>5 / 10</td><td id="compareGroup">—</td></tr>
+            <tr><td>Vuelta completa</td><td>3,86–3,91 s en video</td><td id="compareLap">Sin vuelta completa</td></tr>
+            <tr><td>Error absoluto · mediana / p95</td><td>No medido desde el video</td><td id="compareError">—</td></tr>
+            <tr><td>PWM mediano · izquierdo / derecho</td><td>CSV no sincronizado al video</td><td id="comparePwm">—</td></tr>
+            <tr><td>Sensores del grupo · mediana / p95</td><td>No visible en el video</td><td id="compareGroup">—</td></tr>
           </tbody>
         </table>
       </div>
       <p class="simulation-note" id="comparisonStatus">Se comparan resultados; estas cifras no conducen el robot ni fijan el cronómetro.</p>
       <details class="sensor-details"><summary>Alcance de la comparación</summary>
-        <p class="mode-explanation">Esta tabla conserva 14 533 muestras en marcha y el video de la fase 1 de septiembre; no incluye los últimos ensayos. El video da una referencia aproximada, con incertidumbre cercana a un segundo, y no está sincronizado con el CSV. p95 significa que el 95 % de las lecturas queda por debajo de ese valor. Se excluye la salida final donde faltaba madera. Igualar el tiempo no demuestra por sí solo que sensores, giro y fricción sean fieles.</p>
+        <p class="mode-explanation">Cuatro vueltas completas en el video 38461: 3,90; 3,91; 3,88 y 3,86 s, pasando por el mismo lugar y sentido. La incertidumbre manual es aproximadamente ±0,1 s. Se observa seguimiento suave antes de la salida cerca de 20,3 s; no equivale a error cero. El CSV de octubre no está sincronizado con este video. Igualar la duración no identifica por sí solo la fricción, el PWM→movimiento ni el error lateral. p95 indica que el 95 % de las muestras queda por debajo del valor mostrado.</p>
       </details>
     </section>
 
@@ -990,13 +991,9 @@ h3{font-size:1.02rem;margin-bottom:0}
 (function installFidelityMetrics(root) {
   'use strict';
   const evidence = Object.freeze({
-    lapVideoSeconds: [9, 10], videoTimingUncertaintySeconds: 1,
-    calibrationSeconds: 3.324,
-    medianAbsoluteErrorMm: 14.834, p95AbsoluteErrorMm: 33.590,
-    medianPwmLeft: 60, medianPwmRight: 78,
-    medianActiveGroup: 5, p95ActiveGroup: 10,
-    opposingPwmPercent: 5.22, runningRows: 14533,
-    scope: 'Video y CSV del 24 de septiembre: no están sincronizados entre sí. Se excluye la salida final por falta de soporte de madera.',
+    lapVideoSeconds: [3.86, 3.91], videoTimingUncertaintySeconds: .1,
+    measuredLaps: [3.90, 3.91, 3.88, 3.86],
+    scope: 'Video 38461 de octubre; cuatro vueltas completas. CSV no sincronizado. La salida cerca de 20,3 s no se usa como vuelta completa.',
   });
   function histogram(min, max, step) {
     const bins = new Uint32Array(Math.round((max-min)/step)+1);
@@ -1044,6 +1041,7 @@ h3{font-size:1.02rem;margin-bottom:0}
 })(typeof globalThis !== 'undefined' ? globalThis : this);
 
 </script>
+  <script src="control-pid-actual.js"></script>
   <script>
 /*
  * Simulador interactivo del seguidor de línea.
@@ -1068,9 +1066,8 @@ h3{font-size:1.02rem;margin-bottom:0}
   const simulationClock = globalThis.SimulationClock.create({stepSeconds:STEP, maxStepsPerFrame:40, maxWorkMs:8});
   let fidelity = globalThis.FidelityMetrics.create();
   const GRAVITY = 9.81;
-  // Clave nueva: evita que ajustes antiguos (850/220, Kp 320) oculten el
-  // perfil v4 robusto cuando el usuario abre la actualización.
-  const STORAGE_KEY = 'seguidor-linea-web-fase2-v7-20260924';
+  // Nueva clave: las preferencias de septiembre no ocultan el PID actual.
+  const STORAGE_KEY = 'seguidor-linea-web-pidactual-v710-20261015';
   const numberFormat = new Intl.NumberFormat('es-CO', { maximumFractionDigits: 2 });
 
   const controlProfiles = Object.freeze({
@@ -1084,6 +1081,9 @@ h3{font-size:1.02rem;margin-bottom:0}
       urgentYawSlew:250, positionFilterMs:8, derivativeFilterMs:20,
       maxYawRate:20, pivotMinYaw:3.15, pwmFloor:46, firmwareRpmScale:1950,
       accelLimit:2, brakeLimit:10, lateralLimit:4, controlPeriod:8}),
+    3: Object.freeze({speedFactor:1.5, directKp:100, directKi:4, directKd:1.6,
+      directDerivativeMs:16, directStraightPwm:120, directCurvePwm:80,
+      directAccel:220, directDecel:900, pwmFloor:46, controlPeriod:8}),
   });
 
   const groups = [
@@ -1105,7 +1105,16 @@ h3{font-size:1.02rem;margin-bottom:0}
         { key: 'firmwareRpmScale', label: 'Escala RPM del código', unit: 'RPM', value: 1950, min: 100, max: 5000, step: 10, hardMax: 20000, help: 'Estimación fija del firmware: 3000 × 5/6 × 0,78. Cambiar voltaje físico no cambia esta conversión PWM.' },
         { key: 'calibrationPwm', label: 'PWM inicial de calibración', unit: '/255', value: 70, min: 0, max: 160, step: 1, hardMax: 255, help: 'La v4 inicia aquí y aumenta por pasos cuando no detecta movimiento.' },
         { key: 'calibrationPwmMax', label: 'PWM máximo de calibración', unit: '/255', value: 110, min: 0, max: 200, step: 1, hardMax: 255, help: 'Límite de la búsqueda automática de fuerza durante el encendido.' },
-        { key: 'phaseProfile', label: 'Perfil: 1 Fase 1 · 2 Fase 2', unit: '', value: 2, min: 1, max: 2, step: 1, hardMax: 2, hardMin: 1, help: 'Fase 1 conserva el control anterior. Fase 2 sube órdenes de recta/curva un 20 % y modifica amortiguación/rampas. Cambiar de perfil pausa y conserva los rangos; no cambia física ni calibración.' },
+        { key: 'phaseProfile', label: 'Perfil: 1 y 2 históricos · 3 actual', unit: '', value: 3, min: 1, max: 3, step: 1, hardMax: 3, hardMin: 1, help: '3: PID directo PWM v7.10 y rangos virtuales preparados. 1 y 2: controles de septiembre. Cambiar pausa; no modifica la planta física.' },
+        { key: 'speedFactor', label: 'Factor de velocidad del código', unit: '×', value: 1.5, min: .8, max: 2, step: .05, hardMax: 2, hardMin: .8, help: 'Multiplica PWM base y autoridad P, como v7.10. 1,50 da objetivos base 180/120 PWM antes de la corrección. No es voltaje ni RPM medidas.' },
+        { key: 'directKp', label: 'Kp · PID actual', unit: 'PWM/error', value: 100, min: 0, max: 250, step: 1, hardMax: 1000, help: 'Error normalizado entre −1 y 1. P responde a cada centroide, sin zona muerta ni filtro de posición.' },
+        { key: 'directKi', label: 'Ki · PID actual', unit: 'PWM/(error·s)', value: 4, min: 0, max: 30, step: .1, hardMax: 1000, help: 'Integral limitada a 4 PWM y activa cerca del centro, con anti-saturación.' },
+        { key: 'directKd', label: 'Kd · PID actual', unit: 'PWM·s/error', value: 1.6, min: 0, max: 10, step: .05, hardMax: 100, help: 'Derivada filtrada del error normalizado, limitada a ±65 PWM.' },
+        { key: 'directDerivativeMs', label: 'Filtro D · PID actual', unit: 'ms', value: 16, min: 0, max: 80, step: 1, hardMax: 1000, help: 'Sólo se filtra la derivada; no se retrasa la posición que recibe P.' },
+        { key: 'directStraightPwm', label: 'Base de recta antes del factor', unit: 'PWM', value: 120, min: 0, max: 255, step: 1, hardMax: 255, help: 'Objetivo superior de avance. La corrección reparte PWM a ambas ruedas.' },
+        { key: 'directCurvePwm', label: 'Base de curva antes del factor', unit: 'PWM', value: 80, min: 0, max: 255, step: 1, hardMax: 255, help: 'Objetivo inferior por error/derivada; debe ser menor o igual a la base de recta.' },
+        { key: 'directAccel', label: 'Rampa PWM de aceleración', unit: 'PWM/s', value: 220, min: 0, max: 1000, step: 10, hardMax: 10000, help: 'Rampa del código, multiplicada por el factor si supera 1. No es la aceleración física.' },
+        { key: 'directDecel', label: 'Rampa PWM de reducción', unit: 'PWM/s', value: 900, min: 0, max: 2000, step: 10, hardMax: 10000, help: 'Rapidez de reducción del PWM base; no modifica el agarre del piso.' },
         { key: 'pivotEntryMm', label: 'Entrada a pivote', unit: 'mm', value: 24, min: 10, max: 40, step: 1, hardMax: 45, help: 'Exige además lectura válida y actividad en sensores extremos.' },
         { key: 'pivotExitMm', label: 'Salida de pivote', unit: 'mm', value: 24, min: 5, max: 35, step: 1, hardMax: 45, help: 'Sale al volver hacia el centro o si deja de estar activo el extremo.' },
         { key: 'postPivotMs', label: 'Recuperación tras pivote', unit: 'ms', value: 160, min: 0, max: 300, step: 10, hardMax: 1000, help: 'Tiempo de velocidad baja y bloqueo de nueva entrada tras un pivote.' },
@@ -1123,7 +1132,7 @@ h3{font-size:1.02rem;margin-bottom:0}
         { key: 'motorTau', label: 'Respuesta histórica (plantas 0 y 1)', unit: 'ms', value: 70, min: 5, max: 300, step: 5, hardMax: 3000, help: 'No se utiliza en la planta 2. La planta nueva distingue impulso, corte e inercia efectiva de tracción.' },
         { key: 'motorBias', label: 'Diferencia entre motores', unit: '%', value: 0, min: -30, max: 30, step: 1, hardMax: 100, hardMin: -100, help: 'Negativo: rueda izquierda más fuerte, tiende a girar a la derecha.' },
         { key: 'motorLaw', label: 'Planta: 0 histórica · 1 exploratoria · 2 inferida', unit: '', value: 2, min: 0, max: 2, step: 1, hardMax: 2, hardMin: 0, help: '2 usa una ganancia y respuesta efectivas contrastadas con observaciones; no son parámetros físicos identificados de forma única. 0 conserva la ley lenta anterior y 1 la hipótesis proporcional previa.' },
-        { key: 'effectiveGain', label: 'Ganancia motriz efectiva', unit: '×', value: 1, min: 0.2, max: 2, step: 0.01, hardMax: 5, help: 'Sólo planta 2: escala PWM→movimiento, inferida conjuntamente con carga y respuesta. No cambia las ganancias PID ni las órdenes del firmware.' },
+        { key: 'effectiveGain', label: 'Ganancia motriz efectiva', unit: '×', value: 0.9, min: 0.2, max: 2, step: 0.01, hardMax: 5, help: 'Sólo planta 2: ajuste efectivo PWM→movimiento contrastado con el video de octubre; no medido por separado. No cambia el PID ni el reloj. 1,00 conserva el valor previo de septiembre.' },
         { key: 'effectiveMotorTau', label: 'Respuesta efectiva al impulsar', unit: 'ms', value: 12, min: 2, max: 150, step: 1, hardMax: 1000, help: 'Sólo planta 2; respuesta reducida por contrastar, no constante de motor medida.' },
         { key: 'effectiveBrakeTau', label: 'Respuesta efectiva al soltar/invertir', unit: 'ms', value: 5, min: 2, max: 150, step: 1, hardMax: 1000, help: 'Sólo planta 2; representa conjuntamente desaceleración mecánica y respuesta de tracción, sin afirmar frenado eléctrico medido.' },
         { key: 'effectiveBodyTau', label: 'Respuesta efectiva de tracción', unit: 'ms', value: 15, min: 2, max: 150, step: 1, hardMax: 1000, help: 'Sólo planta 2. Evita imponer siempre la cascada antigua de 70+55 ms, incompatible con la respuesta óptica rápida observada.' },
@@ -1199,7 +1208,15 @@ h3{font-size:1.02rem;margin-bottom:0}
     'pivotEntryMm', 'pivotExitMm', 'postPivotMs', 'urgentYawSlew',
     'positionFilterMs', 'derivativeFilterMs',
     'phaseProfile',
+    'speedFactor', 'directKp', 'directKi', 'directKd', 'directDerivativeMs',
+    'directStraightPwm', 'directCurvePwm', 'directAccel', 'directDecel',
   ]);
+  const directOnlyControls = new Set(['speedFactor', 'directKp', 'directKi', 'directKd',
+    'directDerivativeMs', 'directStraightPwm', 'directCurvePwm', 'directAccel', 'directDecel']);
+  const historicalOnlyControls = new Set(['straightRpm','curveRpm','startRpm','maxYawRate',
+    'pivotMinYaw','yawSlewRate','kp','kd','firmwareRpmScale','calibrationPwm','calibrationPwmMax',
+    'pivotEntryMm','pivotExitMm','postPivotMs','urgentYawSlew','positionFilterMs','derivativeFilterMs',
+    'accelLimit','brakeLimit','lateralLimit']);
   let controlMode = 'advanced3000';
   let advancedMotorRpm = 3000;
 
@@ -1218,6 +1235,19 @@ h3{font-size:1.02rem;margin-bottom:0}
   let replayIndex = 0;
 
   function clamp(value, low, high) { return Math.max(low, Math.min(high, value)); }
+  function usesCurrentPid() { return controlMode !== 'reference1000' && params.phaseProfile === 3; }
+  function currentPidConfig() {
+    return globalThis.pidDirectoActual.Config({kp:params.directKp, ki:params.directKi,
+      kd:params.directKd, derivativeTauS:params.directDerivativeMs / 1000,
+      straightPwm:params.directStraightPwm, curvePwm:params.directCurvePwm,
+      accelerationPwmS:params.directAccel, decelerationPwmS:params.directDecel});
+  }
+  function resetCurrentControl() {
+    state.currentPid = globalThis.pidDirectoActual.createState();
+    state.lineMemory = globalThis.pidDirectoActual.createLineMemory();
+    state.recovery = {active:false, startedMs:0, elapsedMs:0, direction:0, validCount:0, phase:'INACTIVA'};
+    state.currentOutput = null;
+  }
   function moveToward(value, target, maxDelta) {
     return value + clamp(target - value, -maxDelta, maxDelta);
   }
@@ -1250,8 +1280,8 @@ h3{font-size:1.02rem;margin-bottom:0}
     // asserting that the observed working amplitude cannot start a wheel.
     if (!rollingSameDirection && magnitude < startingThreshold) return 0;
     // Voltage-proportional running law. Plant 2 exposes an effective gain;
-    // its default remains 1. Response times, not a clock or hidden path,
-    // are constrained jointly by the observed calibration and lap behavior.
+    // October changes this effective gain from 1 to .90, not the PID or clock.
+    // It is a reduced joint fit, not an independently measured motor constant.
     const effectiveGain = params.motorLaw >= 1.5 ? params.effectiveGain : 1;
     return Math.sign(pwm) * loadedRpm() * Math.min(1, magnitude / 255 * effectiveGain);
   }
@@ -1751,6 +1781,7 @@ h3{font-size:1.02rem;margin-bottom:0}
       updateReferenceController(dt);
       return;
     }
+    if (usesCurrentPid()) { updateCurrentController(dt); return; }
     const reading = senseLine();
     state.reading = reading;
     let targetSpeed;
@@ -1849,6 +1880,72 @@ h3{font-size:1.02rem;margin-bottom:0}
     state.commandR = right;
   }
 
+  function updateCurrentController(dt) {
+    const pid = globalThis.pidDirectoActual;
+    const reading = senseLine();
+    const nowMs = Math.floor(state.powerTime * 1000 + 1e-6);
+    state.reading = reading;
+    const recovery = state.recovery;
+    if (!reading.valid) {
+      state.lossTime += dt;
+      pid.reset(state.currentPid);
+      state.currentOutput = null;
+      state.rawPwmL = state.rawPwmR = 0;
+      if (reading.reason === 'adc_saturado_uniforme') {
+        pauseRobot('ADC uniforme en el límite: sin posición fiable para buscar.');
+        return;
+      }
+      if (!recovery.active) {
+        const direction = pid.recoveryDirection(state.lineMemory, nowMs, 1);
+        if (!direction) {
+          pauseRobot('Sin historial reciente para buscar. Recoloca y pulsa BOOT; conserva la calibración.');
+          return;
+        }
+        Object.assign(recovery, {active:true, startedMs:nowMs, elapsedMs:0,
+          direction, validCount:0, phase:'RETORNO'});
+        return;
+      }
+      recovery.validCount = 0;
+      recovery.elapsedMs = nowMs - recovery.startedMs;
+      recovery.phase = 'RETORNO';
+      if (recovery.elapsedMs >= 1200) {
+        recovery.active = false; recovery.phase = 'AGOTADA';
+        pauseRobot('Retorno agotado tras 1,2 s. Recoloca y pulsa BOOT sin recalibrar.');
+        return;
+      }
+      const initial = clamp(Math.max(82, state.calibrationLearnedPwm), 82, 110);
+      const fraction = clamp((recovery.elapsedMs - 16) / 160, 0, 1);
+      const pwm = recovery.elapsedMs >= 16 ? recovery.direction * (initial + (110 - initial) * fraction) : 0;
+      state.rawPwmL = pid.roundPwm(pwm);
+      state.rawPwmR = pid.roundPwm(-pwm);
+      return;
+    }
+    state.lossTime = 0;
+    const reentering = recovery.active;
+    if (reentering) {
+      recovery.elapsedMs = nowMs - recovery.startedMs;
+      recovery.validCount++;
+      recovery.phase = recovery.validCount >= 3 ? 'RECUPERADA' : 'CONFIRMAR';
+      if (recovery.validCount >= 3) recovery.active = false;
+    }
+    // The same normalized sensor centroid feeds P immediately. Only D is filtered.
+    const halfSpan = 7.5 * params.sensorPitch / 1000;
+    const out = pid.update(state.currentPid, currentPidConfig(),
+      reading.positionM / halfSpan, dt, params.speedFactor, params.pwmFloor, 1);
+    state.currentOutput = out;
+    if (!out.valid) { pauseRobot('Parámetros o entrada PID inválidos. Revisa base de curva ≤ recta y ganancias.'); return; }
+    state.rawPwmL = pid.roundPwm(out.leftPwm);
+    state.rawPwmR = pid.roundPwm(out.rightPwm);
+    state.positionFilter = reading.positionM;
+    state.dFilter = out.derivativeNormS * halfSpan;
+    pid.observeLine(state.lineMemory, nowMs, reading.positionM, state.dFilter,
+      state.rawPwmL, state.rawPwmR);
+    if (reentering) {
+      const direction = pid.recoveryDirection(state.lineMemory, nowMs, 1);
+      if (direction) recovery.direction = direction;
+    }
+  }
+
   function updatePhysics(dt) {
     state.powerTime += dt;
     state.controlElapsed += dt;
@@ -1858,7 +1955,16 @@ h3{font-size:1.02rem;margin-bottom:0}
         state.controlElapsed + 1e-9 >= controlDt) {
       const elapsed = state.controlElapsed;
       state.controlElapsed = 0;
-      if (state.phase === 'calibrating') updateCalibrationController(elapsed);
+      if (state.phase === 'calibrating') {
+        if (usesCurrentPid()) {
+          state.calibrationElapsed += elapsed;
+          state.rawPwmL = state.rawPwmR = 0;
+          if (state.calibrationElapsed >= 5) {
+            prepareVirtualCalibration();
+            enterReady();
+          }
+        } else updateCalibrationController(elapsed);
+      }
       else { updateController(elapsed); sampledRunning = true; }
     }
 
@@ -1867,10 +1973,10 @@ h3{font-size:1.02rem;margin-bottom:0}
     const bias = params.motorBias / 100;
     let leftRequest;
     let rightRequest;
-    state.appliedPwmL = state.phase === 'calibrating'
+    state.appliedPwmL = state.phase === 'calibrating' || usesCurrentPid()
       ? state.rawPwmL : (controlMode === 'reference1000'
         ? state.referencePwmL : rpmCommandToPwm(state.commandL));
-    state.appliedPwmR = state.phase === 'calibrating'
+    state.appliedPwmR = state.phase === 'calibrating' || usesCurrentPid()
       ? state.rawPwmR : (controlMode === 'reference1000'
         ? state.referencePwmR : rpmCommandToPwm(state.commandR));
     if (sampledRunning && state.reading) {
@@ -2033,6 +2139,11 @@ h3{font-size:1.02rem;margin-bottom:0}
         params.calibrationPwmMax),
       calibrationLearnedPwm: 0,
     };
+    resetCurrentControl();
+    if (usesCurrentPid()) {
+      prepareVirtualCalibration();
+      state.phase = 'ready';
+    }
     const p = pointOnRobot(params.sensorLeadMax, 0);
     startArcMm = nearestTrackArc(p.x, p.y).s;
     state.lastArcMm = startArcMm;
@@ -2044,6 +2155,14 @@ h3{font-size:1.02rem;margin-bottom:0}
     running = false;
     updateUi(true);
     render();
+  }
+
+  function prepareVirtualCalibration() {
+    // Prepared simulation range, NOT a claim that the real 16 channels were calibrated.
+    state.calibration = {min:Array(16).fill(500), max:Array(16).fill(3500), ranges:Array(16).fill(3000), samples:0, validCount:16};
+    state.calibrated = true;
+    state.calibrationMask = 0xffff;
+    state.calibrationLearnedPwm = 0;
   }
 
   function resizeCanvas() {
@@ -2180,6 +2299,15 @@ h3{font-size:1.02rem;margin-bottom:0}
   function startCalibration(continuing = false) {
     if (replay || state.phase === 'running' || state.phase === 'calibrating') return false;
     if (continuing && state.phase !== 'fault') return false;
+    if (!continuing) fidelity = globalThis.FidelityMetrics.create();
+    if (usesCurrentPid()) {
+      stopDrive(); resetCurrentControl();
+      state.phase = 'calibrating'; state.calibrated = false;
+      state.calibrationElapsed = 0; state.controlElapsed = 0;
+      state.laps = 0; state.time = 0; state.trail = []; state.lapCounter.reset();
+      running = true; failureMessage = '';
+      updateUi(true); render(); return true;
+    }
     if (!continuing) {
       state.calibration = sensors.createCalibration();
       state.calibrationStage = 0;
@@ -2241,6 +2369,7 @@ h3{font-size:1.02rem;margin-bottom:0}
       return false;
     }
     state.phase = 'running';
+    resetCurrentControl();
     state.lossTime = 0;
     state.guard = sensors.createGuard();
     state.firstReading = true;
@@ -2394,7 +2523,7 @@ h3{font-size:1.02rem;margin-bottom:0}
     let label = state.phase === 'idle' ? 'Esperando calibración' : 'Lista: pulsa BOOT';
     let tone = '';
     if (state.phase === 'calibrating') {
-      label = `Calibrando · PWM ${Math.round(state.calibrationPwmWorking)}`;
+      label = usesCurrentPid() ? `Preparando rangos virtuales · ${Math.max(0, 5 - state.calibrationElapsed).toFixed(1)} s` : `Calibrando · PWM ${Math.round(state.calibrationPwmWorking)}`;
       tone = 'warning';
     } else if (state.phase === 'fault') {
       label = 'Fallo de calibración'; tone = 'danger';
@@ -2411,6 +2540,7 @@ h3{font-size:1.02rem;margin-bottom:0}
         ? 'BOOT · Reanudar' : 'BOOT · Iniciar');
     $('playButton').disabled = !!replay || !state.calibrated || state.phase === 'calibrating' || state.phase === 'fault';
     $('calibrateButton').disabled = !!replay || state.phase === 'running' || state.phase === 'calibrating';
+    $('calibrateButton').textContent = usesCurrentPid() ? 'Repetir preparación · 5 s' : 'Calibrar';
     $('continueCalButton').hidden = state.phase !== 'fault';
     $('continueCalButton').disabled = !!replay;
     $('placeButton').disabled = !!replay;
@@ -2419,7 +2549,7 @@ h3{font-size:1.02rem;margin-bottom:0}
       state.phase === 'running' || (state.phase === 'paused' && !failureMessage);
     if (state.phase === 'ready') {
       $('canvasOverlay').hidden = false;
-      $('canvasOverlay').textContent = 'Calibración terminada. Pulsa BOOT para iniciar.';
+      $('canvasOverlay').textContent = usesCurrentPid() ? 'Rangos virtuales listos. Pulsa BOOT para iniciar.' : 'Calibración terminada. Pulsa BOOT para iniciar.';
     }
     if (state.phase === 'idle') {
       $('canvasOverlay').hidden = false;
@@ -2446,6 +2576,7 @@ h3{font-size:1.02rem;margin-bottom:0}
         ? `Barrido histórico ${state.calibrationStage + 1}/3`
         : stageNames[state.calibrationStage] || 'Calibrando';
       note = `${stage}, PWM ${Math.round(state.calibrationPwmWorking)}. Canales con rango ≥60: ${state.calibration.validCount}/16.`;
+      if (usesCurrentPid()) note = 'Preparación virtual de 5 s sin mover motores. No reproduce el barrido manual físico ni valida su calibración.';
     } else if (state.phase === 'ready') {
       note = `Calibración conservada para esta sesión. Pulsa BOOT para iniciar; las pausas no la repiten.`;
     }
@@ -2454,13 +2585,17 @@ h3{font-size:1.02rem;margin-bottom:0}
     }
     if (controlMode === 'reference1000') {
       note += ` Firmware de referencia: PWM izquierdo ${state.referencePwmL}, derecho ${state.referencePwmR}; en recta el límite base es 165/255.`;
+    } else if (usesCurrentPid()) {
+      note += ` PID actual · factor ${numberFormat.format(params.speedFactor)}; PWM izquierdo ${state.rawPwmL}, derecho ${state.rawPwmR}.`;
+      if (state.currentOutput) note += ` P ${numberFormat.format(state.currentOutput.p)}, I ${numberFormat.format(state.currentOutput.i)}, D ${numberFormat.format(state.currentOutput.d)} PWM.`;
+      if (state.recovery.active) note += ` Retorno ${state.recovery.phase.toLowerCase()} · ${state.recovery.elapsedMs} ms.`;
     } else if (params.straightRpm > params.firmwareRpmScale + 1) {
       note += ` La consigna de recta se limita a la escala fija del código (${Math.round(params.firmwareRpmScale)} RPM estimadas), no a una medición del motor.`;
     }
     if (force && state.phase === 'ready') {
       note = controlMode === 'reference1000'
         ? 'Calibración lista. Referencia de 1000 RPM: 16 sensores, centroide, PID y PWM original.'
-        : 'Calibración lista. Iniciar y reanudar aceptan cualquier posición estimable de la regleta; pausar conserva rangos. El grupo ancho se registra sin detener.';
+        : usesCurrentPid() ? '16 rangos virtuales preparados (ADC blanco 500 / negro 3500, supuestos). BOOT inicia el PID actual. No son rangos medidos del robot físico.' : 'Calibración lista. Iniciar y reanudar aceptan cualquier posición estimable de la regleta; pausar conserva rangos. El grupo ancho se registra sin detener.';
     }
     $('readout').textContent = note;
     const measured = fidelity.snapshot();
@@ -2472,7 +2607,7 @@ h3{font-size:1.02rem;margin-bottom:0}
     $('comparePwm').textContent = pair(measured.medianPwmLeft, measured.medianPwmRight);
     $('compareGroup').textContent = pair(measured.medianActiveGroup, measured.p95ActiveGroup);
     $('comparisonStatus').textContent = `${measured.samples} lecturas de esta sesión simulada; ${measured.invalidSamples} inválidas. ` +
-      'Se compara el resultado, no se impone una vuelta de diez segundos. La anchura óptica todavía difiere de las muestras físicas.';
+      'El objetivo de contraste es 3,86–3,91 s por vuelta, no un tiempo impuesto al modelo. El error visible suave del video no equivale a un error lateral medido.';
     $('comparisonStatus').dataset.tone = measured.samples ? 'warning' : '';
     const clock = simulationClock.snapshot();
     $('clockStatus').textContent = clock.suspended ? 'Suspendido mientras la pestaña está oculta.' :
@@ -2489,7 +2624,7 @@ h3{font-size:1.02rem;margin-bottom:0}
       for (const id of ['timeValue', 'speedValue', 'slipValue', 'pitchValue']) $(id).textContent = '—';
       $('readout').textContent = 'Datos físicos: consulta los tiempos y PWM debajo de la regleta. Velocidad, derrape, cabeceo y posición X/Y no están medidos en este CSV.';
       for (const id of ['compareLap','compareError','comparePwm','compareGroup']) $(id).textContent = '—';
-      $('comparisonStatus').textContent = 'Reproducción local: no se confunden estos datos con un recorrido del modelo. Las referencias físicas de la tabla corresponden al ensayo analizado del 24 de septiembre.';
+      $('comparisonStatus').textContent = 'Reproducción local: no se confunden estos datos con un recorrido del modelo. La referencia de tiempo es el video de octubre, no sincronizado con el CSV.';
       $('clockStatus').textContent = 'Simulación detenida para consultar el CSV físico.';
       $('canvasOverlay').hidden = false;
       $('canvasOverlay').textContent = 'Pista congelada: el CSV sólo muestra lecturas, no la posición real del carro.';
@@ -2593,6 +2728,11 @@ h3{font-size:1.02rem;margin-bottom:0}
     }
     if (state.phase === 'running') pauseRobot('Perfil cambiado. La calibración se conserva; pulsa BOOT para iniciar con el nuevo control.');
     Object.assign(params, controlProfiles[id], {phaseProfile:id});
+    fidelity = globalThis.FidelityMetrics.create();
+    state.lapCounter.reset();
+    state.laps = 0; state.lastLapSeconds = null; state.progressMm = 0;
+    resetCurrentControl();
+    if (id === 3) { prepareVirtualCalibration(); state.phase = 'ready'; state.reading = senseLine(); }
     for (const key of [...Object.keys(controlProfiles[id]), 'phaseProfile']) {
       bounds[key].min = Math.min(bounds[key].min, params[key]);
       bounds[key].max = Math.max(bounds[key].max, params[key]);
@@ -2651,6 +2791,7 @@ h3{font-size:1.02rem;margin-bottom:0}
     $('controllerMode').value = controlMode;
     $('modeExplanation').textContent = controlMode === 'reference1000'
       ? 'Referencia histórica de 1000 RPM: lógica PID/PWM conservada. Su entrada sigue siendo reflectancia ideal, no la normalización v6.2. El .ino original no cambia.'
+      : usesCurrentPid() ? 'Perfil 3 · PID directo v7.10 · motor nominal 3000 RPM · factor inicial 1,50. P actúa con cada lectura; D filtrada a 16 ms. Sin zona muerta, pivotes ni guardia de 24 ms del código antiguo. Retorno por historial tras perder la línea.'
       : `Fase ${params.phaseProfile === 1 ? '1' : '2'} de septiembre · motor nominal 3000 RPM. ${params.phaseProfile === 1 ? 'Órdenes 334/180 RPM.' : 'Órdenes 400/216 RPM y corrección PD amortiguada.'} Control anterior al PID actual en PWM. La calibración y la física de este modelo siguen siendo aproximadas.`;
     for (const key of advancedOnlyControls) {
       const disabled = controlMode === 'reference1000';
@@ -2659,6 +2800,10 @@ h3{font-size:1.02rem;margin-bottom:0}
       }
       $(`range-${key}`).closest('.parameter').dataset.disabled = String(disabled);
     }
+    for (const key of directOnlyControls)
+      $(`range-${key}`).closest('.parameter').hidden = !usesCurrentPid();
+    for (const key of historicalOnlyControls)
+      $(`range-${key}`).closest('.parameter').hidden = usesCurrentPid();
     syncPlantUi();
   }
 
@@ -2670,7 +2815,7 @@ h3{font-size:1.02rem;margin-bottom:0}
       for (const kind of ['range','min','value','max']) $(`${kind}-${key}`).disabled = disabled;
       $(`range-${key}`).closest('.parameter').dataset.disabled = String(disabled);
     }
-    // This is a two-choice profile selector, not a rescalable physical knob.
+    // This is a discrete profile selector, not a rescalable physical knob.
     for (const kind of ['min', 'max']) $(`${kind}-phaseProfile`).disabled = true;
   }
 
@@ -2708,6 +2853,9 @@ h3{font-size:1.02rem;margin-bottom:0}
       if (desired < bounds[key].min) bounds[key].min = desired;
       params[key] = desired;
       syncControl(key);
+    }
+    if (name === 'firmware3000' || name === 'v3Deadband') {
+      params.phaseProfile = 2; syncControl('phaseProfile');
     }
     if (controlMode === 'reference1000') {
       params.motorRpm = 1000;
@@ -2766,6 +2914,7 @@ h3{font-size:1.02rem;margin-bottom:0}
       }
       document.querySelectorAll('.preset').forEach((b) => b.setAttribute('aria-pressed', 'false'));
       $('presetWarning').hidden = true;
+      syncModeUi();
       saveSettings();
       running = false;
       resetState();
@@ -2790,6 +2939,7 @@ h3{font-size:1.02rem;margin-bottom:0}
       senseLine, resetState, step: updatePhysics, updateLap, changeMode,
       pressBoot, startCalibration, repositionRobot, updateController, pauseRobot, updateUi,
       calibrationPrediction, updateCalibrationController,
+      updateCurrentController, currentPidConfig, prepareVirtualCalibration,
       get replay() { return replay; },
       rpmCommandToPwm, pwmToMotorRpm, applyControlProfile, controlProfiles,
       setParam(key, value) {
